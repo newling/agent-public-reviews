@@ -16,6 +16,12 @@ before suggesting them. The best review makes it very clear what needs
 to be done to get the PR to a state you like, without writing the code
 for the author.
 
+Reviews should be independent of any existing reviews on the PR. They
+can comment on what aspects of previous reviews have been addressed,
+but should not use existing reviews as validation for their points.
+Try to review as much as possible without being biased by existing
+reviews.
+
 ## Testing
 
 Run all new tests in the PR locally. In the review, report:
