@@ -9,10 +9,10 @@ cd projects/hipblaslt/tensilelite && source .venv/bin/activate && python -m pyte
   Tensile/Tests/unit/test_writeClientConfigIni_library_file.py \
   Tensile/Tests/unit/test_writeClientConfig_wrapper_libraryFile_required.py -v
 ```
-**Time:** 0.56s
+**Time:** 0.23s
 **Results:** 9 passed, 0 failed, 0 skipped
 
-All CI checks also pass (Linux gfx94X, Windows gfx1151, math-ci precheckin,
+All CI checks pass (Linux gfx94X, Windows gfx1151, math-ci precheckin,
 codecov, clang-tidy, pre-commit).
 
 ## Summary
@@ -33,9 +33,10 @@ The fix has four parts:
 
 2. **Cache round-trip** (`BenchmarkProblems.py`): `writeBenchmarkFiles` now
    returns the relative library-file path it wrote. This path is persisted in
-   `cache.yaml` as `LibraryFile`. The cached code path reads it back instead
-   of recomputing via `libraryDir()`. Legacy cache files lacking the field
-   hit the existing `KeyError` handler and trigger a recompile.
+   `cache.yaml` as `LibraryFile` and typed via a `CacheEntry` TypedDict. The
+   cached code path reads it back instead of recomputing via `libraryDir()`.
+   Legacy cache files lacking the field hit the existing `KeyError` handler
+   and trigger a recompile.
 
 3. **Import and call fixes** (`TensileClientConfig.py`): fixes stale imports
    from `Tensile.Common` (which no longer re-exports the needed names) and
@@ -49,78 +50,52 @@ The fix has four parts:
 
 ## Actionable items
 
-1. **`TensileClientConfig.py:195` — `sourceDir=""` will hit an assertion
-   failure.** The call passes `""` for `sourceDir`, but `writeClientConfigIni`
-   at `ClientWriter.py:563` asserts `os.path.exists(sourceDir)`, and
-   `os.path.exists("")` is `False`. This was also broken before the PR (the
-   old code also passed `""`), but since the PR is fixing up this call site
-   anyway, it would be good to fix this too. The simplest approach: pass
-   `outputDir` (which is already computed at line 193) as `sourceDir`, or
-   `"."`, so the assert passes.
-
-2. **`test_writeClientConfigIni_library_file.py:13` — unused `import pytest`.**
-   `pytest` is imported but never referenced in this file. Same in
-   `test_benchmarkProblems_cache_library_file.py:14` — `pytest` is imported
-   but only used implicitly via `tmp_path` fixtures (which don't need the
-   import).
+None. All items from the previous review round have been addressed (see
+Commentary below).
 
 ## Suggestions
 
-1. **`BenchmarkProblems.py:617–625` — trim inline comments.** The two comment
-   blocks in the cached branch (lines 617–621 and 623–625) are detailed
-   explanations of the bug this PR fixes, including references to specific
-   line numbers ("line 109") and task numbers ("Task 6") that will rot. A
-   shorter comment would serve better, e.g.:
-   ```python
-   # cachedLibraryFile comes from cache.yaml — see _readCacheIfValid.
-   libraryFile = os.path.join(str(sourcePath), cachedLibraryFile)
-   if not os.path.isfile(libraryFile):
-       printExit(...)
-   ```
-
-2. **`Loading.cpp:51–55` — trim the C++ comment.** The 5-line comment
-   explaining LLVM `ErrorOr` semantics, the original SIGSEGV, and the
-   debugging timeline is informative now but will age poorly. Consider
-   reducing to one line, e.g.:
-   ```cpp
-   // getFileAsStream failed — return nullptr instead of dereferencing null.
-   ```
-
-3. **Consider `TypedDict` for the cache return value.** The return type of
-   `_readCacheIfValid` changed from a plain list to a `dict` with specific
-   string keys (`CodeObjectFiles`, `LibraryFile`). A `TypedDict` would make
-   the contract explicit and let type checkers catch key mismatches. This is
-   beyond the scope of this bug fix but would be a clean follow-up.
-
-4. **`test_benchmarkProblems_cache_library_file.py:58–66` — dead code path.**
-   The `else` branch (lines 63–66) handling a tuple return type will never
-   execute since `_readCacheIfValid` returns a dict. The comment says it
-   "accepts either" but only one form exists. Removing the tuple branch would
-   simplify the test.
+1. **`TensileClientConfig.py:186–192` — the comment is long for what it
+   explains.** The 7-line comment could be reduced to 1–2 lines. The detailed
+   history of what the old default was and why an empty string is bad is
+   context that belongs in the commit message, not in the code.
 
 ## Commentary
 
-**On previous review comments:**
+**Items from the previous review round — all addressed:**
 
-- *Loading.cpp:53 — "comment seems like part of a bug fix explanation"*: I
-  agree. The code pattern (null-check an `ErrorOr`) is standard LLVM
-  practice; a one-line comment is sufficient.
+- **`TensileClientConfig.py:195` — `sourceDir=""` assertion failure:** Fixed.
+  Now passes `outputDir` instead of `""`.
 
-- *BenchmarkProblems.py:134 — "Is there a plan to remove legacy caches?"*:
-  The TODO at line 128 already documents this: remove after ~2026-08-04,
-  which is ~3 months from the PR's date (2026-05-04). The plan exists.
+- **Unused `import pytest`:** Removed from both
+  `test_writeClientConfigIni_library_file.py` and
+  `test_benchmarkProblems_cache_library_file.py`.
 
-- *BenchmarkProblems.py:132 — typing for return type checking*: `TypedDict`
-  would be the right tool here. Worth considering as a follow-up.
+- **`BenchmarkProblems.py:617–625` — verbose inline comments:** Removed
+  entirely. The cached branch now has clean code without commentary about
+  line numbers or task IDs.
 
-- *BenchmarkProblems.py:518 — "Is that 08 April or 04 August?"*: The format
-  is ISO 8601 (YYYY-MM-DD), so `2026-08-04` is August 4th. The format is
-  unambiguous. Worth noting: the date matches the "~3 months" stated in the
-  comment at line 128.
+- **`Loading.cpp:51–55` — verbose C++ comment:** Removed. The null check now
+  stands on its own without explanation of LLVM `ErrorOr` semantics.
 
-- *BenchmarkProblems.py:625 — "comment seems too specific to bug fix
-  effort"*: I agree. The line-number reference ("line 109") and task
-  reference ("Task 6") are particularly fragile.
+- **`TypedDict` for cache return value:** Added. `CacheEntry(TypedDict)` at
+  `BenchmarkProblems.py:92` with `CodeObjectFiles: List[str]` and
+  `LibraryFile: str`. Return type annotations added to all three cache
+  functions.
+
+- **Dead tuple code path in test:** Removed. The test now directly asserts
+  on dict keys without an unreachable `else` branch.
+
+**On newling's inline comments — all addressed:**
+
+- *Loading.cpp comment removed* (Alex replied "Removed").
+- *BenchmarkProblems.py cached-branch comment removed* (Alex replied
+  "Removed").
+- *TypedDict added* (Alex replied noting that strict runtime checking would
+  require mypy or manual asserts, but added the type hints).
+- *Legacy cache removal plan* — Alex confirmed the TODO exists and he has a
+  personal reminder to follow up.
+- *ISO date format* — Alex confirmed "August" (2026-08-04 = August 4th).
 
 **Design observations:**
 
