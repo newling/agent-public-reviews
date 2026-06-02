@@ -38,9 +38,23 @@ Additionally, GEMM tests take ~2.4s on the PR branch vs ~1.2s on develop (2x
 slower), which may make them more susceptible to contention under parallel
 execution.
 
-**Daemon tests**: 5 new daemon tests (`DaemonTest.*`) all pass (2.6s total).
-These spawn a daemon process, connect a HIP client subprocess, and verify
-end-to-end execution including multi-client (`TwoIndependentClients`).
+**Daemon tests**: 5 new daemon tests (`DaemonTest.*`) pass from a non-tty
+session (2.6s total) but **hang reliably from an interactive terminal**. The
+test fixture forks a daemon, then launches the HIP client via `popen("sh -c
+-- XDG_RUNTIME_DIR=... LD_PRELOAD=... hip_vector_add_test ...")`. From an
+interactive pts, the `sh -c` child process gets stuck (state `S+`, 0% CPU)
+before exec'ing the test binary. From a non-tty subprocess on the same
+machine, same user, same build, the test passes in ~440ms. The root cause
+is unknown but is likely related to controlling terminal inheritance in the
+forked daemon or popen'd client.
+
+Additionally, failed or interrupted daemon test runs leave stale processes
+and socket directories under `XDG_RUNTIME_DIR/rocjitsu-test-*/` that are not
+cleaned up. These accumulate and can interfere with subsequent runs. The
+daemon also ignores `SIGTERM` during shutdown (requires `SIGKILL`), and the
+`config_path` file written to `XDG_RUNTIME_DIR/rocjitsu/` persists after
+daemon exit, causing non-daemon HIP tests to unexpectedly spin up an embedded
+VM via the interposer's `get_or_create()` path.
 
 **CI status**: Linux build fails due to `MADV_POPULATE_WRITE` not being
 declared on the CI builder's kernel headers. The PR description mentions a
