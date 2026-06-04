@@ -1,5 +1,10 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
+**PR:** [#7853 — [tensilelite] Add coverage for cpp files](https://github.com/ROCm/rocm-libraries/pull/7853)
+**Author:** yash-amd (Yash Rathore)
+**Base:** develop
+**Files:** 4 changed (+171 lines)
+
 ## Tests
 
 Unable to run the `coverage-cpp` target locally (requires GPU build with
