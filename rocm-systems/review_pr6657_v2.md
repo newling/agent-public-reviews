@@ -2,15 +2,13 @@
 
 **Author**: Tony Gutierrez (@atgutier)
 **Date reviewed**: 2026-06-04
-**Previous review**: 2026-06-01
 **PR**: https://github.com/ROCm/rocm-systems/pull/6657
 
 > This is a review from an agent with an automatic prompt from the reviewer
 
-## Changes since first review
+## Changes since v1 review
 
-The PR was force-pushed with 14 commits on 2026-06-04. Notable new commits
-since our June 1 review:
+The PR was force-pushed with 14 commits on 2026-06-04. Notable additions:
 
 - Fix CDNA4 scratch addressing (stop clobbering user SGPRs s102:s103)
 - Fix three ISA correctness bugs causing RCCL persistent kernel crash
@@ -24,60 +22,110 @@ since our June 1 review:
 ## Tests
 
 **Build environment**:
-- g++ 13.3.0 (Ubuntu 24.04)
+- clang 22.1.3 (LLVM)
 - cmake 4.3.1
-- Release build, no extra CXX flags
+- Release build, Ninja generator
 - AMD EPYC 9575F, Linux 6.8.0-38-generic
+- Separate clean build directories per branch (no shared deps)
 
-**Build**: Clean — all 316 targets compile, zero warnings.
+**Build**: Clean — all 351 targets compile (clang). Zero errors.
 
-**Command**: `ctest -j$(nproc) --output-on-failure`
-**Test count**: 425 (up from ~400 in first review; 5 new RCCL daemon tests)
-**Timing**: ~106s wall
+**Stability** (`ctest -j128`, excluding Large_2048x2048 and RcclDaemon):
 
-**Stability**: Ran the full test suite 5 times on the PR branch:
+| Run | develop (450 tests) | PR branch (419 tests) |
+|-----|--------------------|-----------------------|
+| 1 | passed | passed |
+| 2 | passed | passed |
+| 3 | passed | passed |
+| 4 | passed | passed |
+| 5 | passed | passed |
 
-| Run | Result |
-|-----|--------|
-| 1 | 425/425 passed |
-| 2 | 423/425 — `HipVectorAddTest.CorrectResult` (SEGFAULT), `RocblasGemmTest.Rect_16x32x8` (Failed) |
-| 3 | 425/425 passed |
-| 4 | 425/425 passed |
-| 5 | 425/425 passed |
+Both branches **5/5 clean**. The PR branch registers 31 fewer tests than
+develop (and adds 10 new daemon/RCCL tests). The dropped tests:
 
-**Develop baseline**: 0 failures (451 tests, 1 run completed; consistent with
-first review's 0/3).
+1. **Binary translator / code object patcher** (10 tests):
+   `BinaryTranslatorE2E.*`, `CodeObjectPatcher.*`,
+   `KernelDescriptorTranslator.*`. May have been intentionally excluded
+   from the build as unrelated to this PR's scope.
 
-**Improvement from first review**: Failure rate dropped from 80% (4/5 runs) to
-20% (1/5 runs). The remaining failure is the same pattern — different tests
-fail each run, all pass in isolation. The SEGFAULT in `HipVectorAddTest`
-points to memory corruption under parallel execution.
+2. **SIMD util tests** (9 tests): `UtilSimd.*`, `VAddSimdBenchmark.*`.
 
-**GEMM performance**: `RocblasGemmTest.Square_4x4` takes **2.6s** on this
-branch vs **1.2s** on develop (2.2x regression, unchanged from first review).
+3. **HIP test variants** (4 tests): `HipMemcpyTest.LargeCopy_16MB`,
+   `HipMemcpyTest.LargeCopy_256MB`, `HipMemcpyTest.ReuseAfterFree`,
+   `BfeRegressionTest.ThreadIdxY`. The core HIP memcpy and vector-add tests
+   still exist on both branches — only these specific variants are missing.
 
-**RCCL daemon tests**: All 5 new tests pass reliably. They take ~37–41s each.
-The interactive terminal hang from the first review appears resolved.
+4. **Raw binary ctest entries** (several): develop registers both the raw
+   binary name (e.g., `hip_vector_add_test`) and gtest-discovered names
+   (e.g., `HipVectorAddTest.CorrectResult`). The PR only registers the
+   gtest-discovered names. This is a cosmetic difference, not lost coverage.
 
-**CI status**: Linux build still fails. The detailed build error is not
-surfaced in `gh run view --log-failed` (only the summary job is shown), but
-likely caused by `MADV_POPULATE_WRITE` being used without `#ifdef` guards in
-two files (see actionable item 2).
+**GEMM performance** (3 runs each, isolated):
+
+| | Run 1 | Run 2 | Run 3 |
+|---|---|---|---|
+| develop | 1.22s | 1.22s | 1.22s |
+| PR branch | 2.22s | 2.17s | 2.16s |
+
+**1.8x regression**. Root cause analysis below.
+
+**RCCL daemon tests**: All 5 pass reliably (~30s each). Each test spawns a
+daemon + 2 RCCL ranks via `popen`. The 30s runtime is dominated by emulator
+execution — the same dispatch-loop regression that causes the GEMM slowdown
+(see actionable item 2) affects these tests equally.
+
+**CI status** (run 26964712189, from latest push 2026-06-04T16:16:41Z):
+Linux build fails. Confirmed from CI build logs:
+
+```
+remote_driver.cpp:448:44: error: 'MADV_POPULATE_WRITE' was not declared in this scope
+remote_driver.cpp:550:44: error: 'MADV_POPULATE_WRITE' was not declared in this scope
+simulated_driver.cpp:782:50: error: 'MADV_POPULATE_WRITE' was not declared in this scope
+```
+
+No other compile errors. See actionable item 1.
 
 ## Summary
 
-Same four major capabilities as the first review. The new commits add RCCL
-daemon test coverage, fix several ISA correctness bugs that were blocking RCCL
-persistent kernels (scratch addressing, null indirect jump, `s_call_b64`
-offset), and fix a deadlock in doorbell monitor shutdown.
+This PR (9.4k additions, 165 files) adds four major capabilities:
+
+**1. Daemon mode and multi-process support.** A Unix-domain socket RPC
+transport enables multiple HIP processes to share a single simulated GPU.
+The monolithic `SimulatedDriver` is decomposed into per-process `KfdProcess`
+state containers and a daemon-side driver. A CLI launcher provides `--daemon`
+and `--attach` modes. File descriptors for shared memory (memfd) are passed
+via `SCM_RIGHTS`.
+
+**2. Command processor overhaul.** The dispatch path moves to a two-phase
+model: Phase 1 fills CU wavefront slots, Phase 2 activates CUs asynchronously.
+A backpressure mechanism prevents infinite spin when all CUs are full.
+Completion tracking moves from "all CUs idle" to per-dispatch workgroup
+refcounts (`CompletionTracker`).
+
+**3. ISA correctness fixes.** DS CMPSWAP register source (data0 → data1 for
+compare operand, all 10 arch targets), F64 atomic elem_size (4 → 8), buffer
+cache instruction remapping, `s_memrealtime` implementation, CDNA4 scratch
+addressing, `s_call_b64` offset.
+
+**4. VMID-aware memory.** Every memory subsystem interface gains an explicit
+`uint32_t vmid` parameter (default 0 for backward compatibility). The ambient
+`set_active_vmid()` pattern is removed. All flat/mubuf/smem instructions now
+pass `wf.process_id()` as the VMID through the entire cache hierarchy.
 
 ## Actionable items
 
-### 1. Flaky test failures under parallel execution (regression, improved)
+### 1. 23 tests dropped from develop (regression)
 
-The concurrency bug from the first review persists but is less frequent (1/5
-vs 4/5). The SEGFAULT in `HipVectorAddTest` on one run suggests memory
-corruption. All failing tests pass in isolation. Develop has 0 failures.
+The PR branch registers 23 fewer meaningful tests than develop (excluding
+cosmetic raw-binary-entry duplicates). These need to be restored or
+accounted for:
+
+- **Binary translator / code object patcher** (10): `BinaryTranslatorE2E.*`,
+  `CodeObjectPatcher.*`, `KernelDescriptorTranslator.*`
+- **SIMD util tests** (9): `UtilSimd.*`, `VAddSimdBenchmark.*`
+- **HIP memcpy variants** (3): `HipMemcpyTest.LargeCopy_16MB`,
+  `HipMemcpyTest.LargeCopy_256MB`, `HipMemcpyTest.ReuseAfterFree`
+- **BFE regression** (1): `BfeRegressionTest.ThreadIdxY`
 
 ### 2. MADV_POPULATE_WRITE unguarded in 3 call sites (CI blocker)
 
@@ -88,10 +136,45 @@ Three other call sites use the constant without a guard:
 - `remote_driver.cpp:550` — same
 - `simulated_driver.cpp:782` — same
 
-`MADV_POPULATE_WRITE` requires Linux 5.14+ headers. The CI builder likely has
-older headers. This is probably the CI build failure cause.
+`MADV_POPULATE_WRITE` requires Linux 5.14+ headers. The CI builder has older
+headers. This is the confirmed CI build failure cause.
 
-### 3. Fd leak on partial RPC recv failure (persists from v1)
+### 2. GEMM / emulation performance regression (1.8x)
+
+`RocblasGemmTest.Square_4x4`: 2.18s on PR branch vs 1.22s on develop. Three
+compounding causes identified:
+
+**a) Primary — `cu->activate()` removed from the synchronous dispatch loop.**
+On develop, `handle_doorbell` has a tight inner loop: dispatch workgroups →
+activate CUs → drain completions → repeat. The PR removes the inline
+`cu->activate()`, relying on `on_cu_idle` callbacks. But in functional mode
+(quantum=0), workgroups get dispatched to CUs but never executed in the tight
+loop — execution only happens at the bottom of `handle_doorbell`. This
+serializes work into many more outer-loop iterations.
+
+*Fix*: restore `cu->activate()` inside the inner dispatch loop for functional
+mode (quantum=0). The `on_cu_idle` path is correct for daemon mode
+(quantum>0).
+
+This regression also affects RCCL daemon tests (~30s each). Fixing it should
+reduce their runtime proportionally.
+
+**b) Linear scan replaces O(1) lookup in `CompletionTracker::notify_wg_complete`.**
+On develop, `dispatch_queue_map_` provides O(1) lookup of which queue a
+dispatch belongs to. The PR removes it entirely and does a nested linear scan
+over all queues and entries.
+
+*Fix*: restore `dispatch_queue_map_`.
+
+**c) Byte-at-a-time memory reads with per-byte locking.**
+`read_gpu_u64` calls `read8` eight times, each acquiring two `shared_lock`s
+(vmid mutex + page table mutex) — 16 lock acquisitions per u64 read. The
+command processor calls `read_gpu_u64` extensively in `fetch_from_queue` and
+`process_aql_packet`.
+
+*Fix*: use `memory_->read64(va, vmid)` directly instead of 8× `read8`.
+
+### 3. Fd leak on partial RPC recv failure
 
 **File**: `remote_driver.cpp:355–366`
 
@@ -99,14 +182,7 @@ After receiving the response header via `rpc_recv_msg` (which may deliver an
 fd via SCM_RIGHTS in `received_fds[0]`), if the subsequent `rpc_recv_exact`
 for the payload fails, `return -1` is hit without closing the received fd.
 
-### 4. GEMM test performance regression (2.2x, persists from v1)
-
-`RocblasGemmTest.Square_4x4`: 2.6s on PR branch vs 1.2s on develop. Likely
-caused by the new two-phase dispatch model, completion tracker changes, or the
-recursive mutex. Worth investigating whether this is expected overhead from
-daemon infrastructure or an unintended regression.
-
-### 5. KfdProcess public fields bypass mutex protection (persists from v1)
+### 4. KfdProcess public fields bypass mutex protection
 
 **File**: `kfd_process.h`
 
@@ -126,18 +202,18 @@ if the endpoint string exceeds `sun_path` capacity (typically 107 chars). With
 long `XDG_RUNTIME_DIR` paths or usernames, this could silently connect to the
 wrong socket. An assertion or error on overflow would catch this.
 
-### 2. RPC request_id still not verified (persists from v1)
+### 2. RPC request_id not verified
 
 `request_id` is assigned in the client but the response's `request_id` is
 never checked. Fine for single-threaded model but an assert would be cheap
 insurance.
 
-### 3. Socket path /tmp fallback TOCTOU risk (persists from v1)
+### 3. Socket path /tmp fallback TOCTOU risk
 
 The `/tmp/rocjitsu-<uid>` fallback directory could be pre-created by another
 user. Consider `mkdtemp` or ownership verification.
 
-### 4. Non-atomic static counter in L2 cache (new)
+### 4. Non-atomic static counter in L2 cache
 
 **File**: `l2_cache.cpp`
 
@@ -148,43 +224,27 @@ debug output — but it's technically UB.
 
 ## Commentary
 
-**RCCL daemon tests are a significant addition.** Five new tests
-(AllReduce, AllGather, Broadcast, ReduceScatter, SendRecv) exercise the
-multi-process daemon path with real RCCL collectives. These all pass reliably,
-demonstrating that the daemon infrastructure works for its primary use case.
+**ISA fixes are correct and thoroughly applied.** The `s_call_b64` offset fix
+makes it consistent with `s_branch` (both use
+`PC + 4 + signext(SIMM16 * 4) - size_`). The CDNA4 scratch addressing fix
+correctly uses per-lane swizzling (`lane * scratch_lane_size`). DS CMPSWAP
+data0 → data1 fix verified across all 10 arch targets.
 
-**ISA fixes are correct and thorough.** The `s_call_b64` offset fix makes it
-consistent with `s_branch` (both use `PC + 4 + signext(SIMM16 * 4) - size_`).
-The CDNA4 scratch addressing fix correctly uses per-lane swizzling
-(`lane * scratch_lane_size`). DS CMPSWAP data0 → data1 fix verified across
-all 10 arch targets.
+**RCCL daemon tests are a significant addition.** Five new tests exercise the
+multi-process daemon path with real RCCL collectives. These demonstrate that
+the daemon infrastructure works for its primary use case.
 
 **The doorbell monitor deadlock fix is well-targeted.** `unregister_queue`
 previously joined the monitor thread while holding the queue mutex, but the
 monitor thread needed the same mutex to exit. The fix restructures the
 shutdown sequence.
 
-**The interactive terminal hang from the first review is resolved.** Daemon
-tests now pass from both interactive and non-interactive terminals.
+**VMID threading is thorough.** Every memory access path has been updated:
+instruction fetch, scalar memory, vector memory, cache hierarchy (L1 scalar,
+L1 vector, L2), completion tracker flushes, and command processor GPU reads.
+The `vmid = 0` defaults maintain backward compatibility.
 
 **This PR would still benefit from splitting.** The ISA correctness fixes,
 VMID threading, daemon/RPC transport, and command processor overhaul are
 largely independent. The ISA fixes in particular are standalone correctness
 improvements that could land immediately.
-
-## Status of first-review findings
-
-| Finding | Status |
-|---------|--------|
-| Flaky test failures (regression) | **Improved** — 1/5 vs 4/5 failure rate |
-| CI build failure (MADV_POPULATE_WRITE) | **Persists** — 3 unguarded call sites |
-| GEMM performance regression (2x) | **Persists** — 2.2x slower |
-| Fd leak on partial RPC recv | **Persists** |
-| KfdProcess public fields | **Persists** |
-| CompletionTracker linear scan | **Persists** (not verified if changed) |
-| request_id not verified | **Persists** (demoted to suggestion) |
-| /tmp TOCTOU risk | **Persists** (demoted to suggestion) |
-| L2 eviction vmid assumption | **Persists** (acknowledged in code comments) |
-| recursive_mutex design | **Persists** (not re-investigated) |
-| Daemon test terminal hang | **Resolved** |
-| Stale processes/sockets | **Improved** (mkdtemp isolation, cleanup in TearDown) |
