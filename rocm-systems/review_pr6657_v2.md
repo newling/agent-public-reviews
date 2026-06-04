@@ -69,10 +69,23 @@ develop (and adds 10 new daemon/RCCL tests). The dropped tests:
 
 **1.8x regression**. Root cause analysis below.
 
-**RCCL daemon tests**: All 5 pass reliably (~30s each). Each test spawns a
-daemon + 2 RCCL ranks via `popen`. The 30s runtime is dominated by emulator
-execution — the same dispatch-loop regression that causes the GEMM slowdown
-(see actionable item 2) affects these tests equally.
+**RCCL daemon tests**: All 5 pass reliably (~30s each, ~150s sequential).
+Each test forks a fresh daemon, spawns 2 rank processes, and each rank
+re-initializes HIP + RCCL from scratch. Approximate breakdown per test:
+
+| Phase | Time | Notes |
+|-------|------|-------|
+| Daemon fork + socket ready | ~1s | Polls every 50ms |
+| HIP init + emulator VM boot (×2 ranks) | ~5s | Full interposer/KFD setup |
+| RCCL bootstrap (×2 ranks) | ~10s | `ncclCommInitRank` does topology detection kernels |
+| 3 fuzz iterations of collective | ~10s | 64–1024 floats, small data |
+| TearDown (SIGKILL + cleanup + 500ms sleep) | ~1.5s | |
+
+All 5 tests repeat this full cycle independently. If restructured so a
+single daemon session runs all 5 collectives (AllReduce, Broadcast,
+AllGather, ReduceScatter, SendRecv), the daemon boot + HIP init + RCCL
+bootstrap cost is paid once instead of five times, which should bring the
+total from ~150s to ~40s.
 
 **CI status** (run 26964712189, from latest push 2026-06-04T16:16:41Z):
 Linux build fails. Confirmed from CI build logs:
