@@ -79,41 +79,36 @@ The second commit fixes a build break caused by the
 
 ## Actionable items
 
-### 1. Unreachable `mxBlock < 0` check
+### 1. Drop `--mxBlock`; keep only `--mxBlockA` / `--mxBlockB`
 
-**File:** `cpu_gemm_driver.cpp`, line 956
+**File:** `cpu_gemm_driver.cpp`, lines 848, 922, 930–960
 
-The check `if(mxBlock < 0)` is dead code. By line 956, `mxBlock` has
-already been consumed: if it was `> 0`, it was copied into
-`mxBlockA`/`mxBlockB` at line 938; if it was `0`, it was left alone. But
-there's no path where `mxBlock < 0` reaches this point without having
-been caught earlier — `mxBlock` is an `int` parsed from CLI so it *can*
-be negative, but the check at line 956 is ordered after the `if(mxBlock
-> 0)` block, meaning a negative `mxBlock` silently passes through the
-expansion block and lands here. This ordering makes the check
-*reachable* but confusingly late. Move it before the expansion block
-(before line 930) so the intent is clear and the negative value is
-caught before any logic runs.
+The `--mxBlock` shortcut introduces a cluster of validation problems:
 
-### 2. Help strings contradict the conflict check
+- The help strings for `--mxBlockA`/`--mxBlockB` say "overrides
+  --mxBlock", implying they can be combined, but the code rejects the
+  combination outright (line 930).
+- The `mxBlock < 0` check (line 956) is ordered after the expansion
+  block that only fires for `mxBlock > 0`, making it confusingly late.
+- The shortcut-to-per-side expansion (lines 936–940) and the conflict
+  check above it add ~30 lines of validation for a single convenience
+  alias.
 
-**File:** `cpu_gemm_driver.cpp`, lines 849–851 vs 930–935
-
-The help strings for `--mxBlockA` and `--mxBlockB` say "overrides
---mxBlock for A/B", implying they can be combined with `--mxBlock` (e.g.
-`--mxBlock 32 --mxBlockA 16` to mean "both 32 but override A to 16").
-But the code rejects that combination outright:
+Dropping `--mxBlock` entirely eliminates all of this. The symmetric case
+is just `--mxBlockA 32 --mxBlockB 32` — one extra flag for a
+test/validation tool is a fine trade-off against the simpler validation:
 
 ```cpp
-if(mxBlock > 0 && (mxBlockA > 0 || mxBlockB > 0))
-    // Error: --mxBlock cannot be combined with --mxBlockA or --mxBlockB
+if(mxBlockA < 0 || mxBlockB < 0) { ... }
+if((mxBlockA > 0) != (mxBlockB > 0)) { ... }
+if((mxBlockA > 0 || mxBlockB > 0) && typeStr != "f4") { ... }
 ```
 
-Either implement override semantics (apply `--mxBlock` first, then let
-per-side flags override) or change the help strings to say the flags are
-mutually exclusive with `--mxBlock`.
+The CMakeLists.txt tests that use `--mxBlock 32` would change to
+`--mxBlockA 32 --mxBlockB 32`. The negative test for the conflict
+(`CPUGemm.f4_MX_Conflict_Rejected`) can be dropped.
 
-### 3. Duplicate one-sided MX validation
+### 2. Duplicate one-sided MX validation
 
 **File:** `cpu_gemm_driver.cpp`, lines 362–368 and 946–954
 
@@ -124,7 +119,7 @@ same condition. The `main()` check is sufficient (and runs first); the
 consider replacing the `runGemm()` copy with an `assert` to signal it's
 a precondition rather than user-facing validation.
 
-### 4. `batchCount < 1` on an unsigned type
+### 3. `batchCount < 1` on an unsigned type
 
 **File:** `cpu_gemm_driver.cpp`, line 335
 
