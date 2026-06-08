@@ -1,6 +1,6 @@
 # Review: PR #6657 — rocjitsu: Add daemon and initial support for multiple processes
 
-**Author**: Tony Gutierrez (@atgutier)
+**Author**: atgutier
 **Date reviewed**: 2026-06-01
 **PR**: https://github.com/ROCm/rocm-systems/pull/6657
 

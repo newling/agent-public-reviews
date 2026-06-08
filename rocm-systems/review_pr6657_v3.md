@@ -1,6 +1,6 @@
 # Review: PR #6657 — rocjitsu: Daemon mode, multi-process, ISA fixes (v3)
 
-**Author**: Tony Gutierrez (@atgutier)
+**Author**: atgutier
 **Date reviewed**: 2026-06-04
 **PR**: https://github.com/ROCm/rocm-systems/pull/6657
 

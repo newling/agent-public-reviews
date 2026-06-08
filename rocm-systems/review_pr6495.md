@@ -1,6 +1,6 @@
 # Review: PR #6495 — rocjitsu: SIMD fast-path enablement
 
-**Author**: Alan Li (@lialan)
+**Author**: lialan
 **Date reviewed**: 2026-06-01
 **PR**: https://github.com/ROCm/rocm-systems/pull/6495
 
@@ -116,7 +116,7 @@ regressions at codegen time with zero runtime cost.
 
 ## Reviewer comments assessment
 
-The reviewer (@newling) left several inline comments. Assessment of each:
+The reviewer (newling) left several inline comments. Assessment of each:
 
 ### Agree
 

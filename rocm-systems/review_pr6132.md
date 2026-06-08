@@ -1,6 +1,6 @@
 # Review: PR #6132 — [rocjitsu][WIP] Plugin directory structure proposal
 
-**Author**: James Newling (@newling)
+**Author**: newling
 **Date reviewed**: 2026-06-05
 **PR**: https://github.com/ROCm/rocm-systems/pull/6132
 

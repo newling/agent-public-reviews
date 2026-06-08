@@ -1,6 +1,6 @@
 # Review: PR #6495 — rocjitsu: SIMD fast-path enablement (third pass)
 
-**Author**: Alan Li (@lialan)
+**Author**: lialan
 **Date reviewed**: 2026-06-04
 **PR**: https://github.com/ROCm/rocm-systems/pull/6495
 **Commit**: `a00762b6ef`
