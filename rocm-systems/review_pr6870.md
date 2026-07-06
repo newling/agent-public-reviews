@@ -1,6 +1,5 @@
 # Review: PR #6870 — rocjitsu: Add v_cvt_scalef32 and non-scaled FP8/BF8 cvt insts
 
-**Author**: atgutier
 **Date reviewed**: 2026-06-08
 **PR**: https://github.com/ROCm/rocm-systems/pull/6870
 **Commit**: `32dfb55f0c`

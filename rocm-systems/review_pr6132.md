@@ -1,6 +1,5 @@
 # Review: PR #6132 — [rocjitsu][WIP] Plugin directory structure proposal
 
-**Author**: newling
 **Date reviewed**: 2026-06-05
 **PR**: https://github.com/ROCm/rocm-systems/pull/6132
 
@@ -16,7 +15,7 @@
 
 **Build**: Clean — all 328 targets compile. Zero errors, zero warnings.
 
-**Command**: `ctest --test-dir ~/workspace/builds/rocm-systems-claudius -j6 --output-on-failure -E "DaemonTest|RcclDaemon|Large_2048|RocblasGemm|Rocminfo"`
+**Command**: `ctest --test-dir $BUILD_DIR -j6 --output-on-failure -E "DaemonTest|RcclDaemon|Large_2048|RocblasGemm|Rocminfo"`
 
 **Result**: 497/498 pass (5.6s wall)
 
@@ -262,7 +261,7 @@ configurable via environment variable for debugging complex kernels.
 
 **File**: `scripts/run_perf_matrix.sh:67-68`
 
-Associative arrays require bash 4.0+. The shebang is `#!/usr/bin/env bash`
+Associative arrays require bash 4.0+. The shebang invokes `bash`
 which may resolve to bash 3.x on some systems (notably older macOS).
 Adding `if ((BASH_VERSINFO[0] < 4)); then echo "bash 4+ required"; exit 1; fi`
 would prevent confusing failures.

@@ -2,10 +2,9 @@
 
 # Review: PR #7703 -- Add unit test for TensileLogic_Run, TensileMergeLibrary, TensileRetuneLibrary and TensileUpdateLibrary (v2)
 
-**Author**: pdhirajkumarprasad (Dhiraj)
 **Date reviewed**: 2026-06-02
 **PR**: https://github.com/ROCm/rocm-libraries/pull/7703
-**Commit reviewed**: 18fd91b0a89 (tip of `users/dhirajp/code_coverage_unit_test_PR3`)
+**Commit reviewed**: 18fd91b0a89 (tip of `<pr-head-ref>`)
 
 ## Tests
 
@@ -39,7 +38,7 @@ This PR adds 4 new test files (2316 lines added, 0 deleted, no production code c
 - `TensileRetuneLibrary.py` -- covers working path management, library parsing, benchmarking setup, and the main `TensileRetuneLibrary` entry point
 - `TensileUpdateLibrary.py` -- covers `UpdateLogic`, `TensileUpdateLibrary` entry point, and CLI argument parsing
 
-The production code changes originally bundled in this PR (import refactoring, dead code removal, and `GlobalParameters.globalParameters` bug fix in `TensileRetuneLibrary.py`) have been moved to the companion PR #7849, as Alex requested. The PR description still describes these product code changes, which is now misleading since they are no longer part of the diff.
+The production code changes originally bundled in this PR (import refactoring, dead code removal, and `GlobalParameters.globalParameters` bug fix in `TensileRetuneLibrary.py`) have been moved to the companion PR #7849, as the reviewer requested. The PR description still describes these product code changes, which is now misleading since they are no longer part of the diff.
 
 The tests heavily rely on `unittest.mock` for all external dependencies. The utility-level tests (e.g., `TestEnsurePath`, `TestAllFiles`, `TestAddKernel`, `TestSanitizeSolutions`, `TestFindSolutionWithIndex`) operate on real data structures and provide genuine correctness verification. The higher-level tests mock out all interesting logic and primarily verify call wiring, with assertions too weak to catch behavioral bugs.
 
@@ -152,37 +151,37 @@ Our previous review found all 88 tests passing (we had a compatible rocisa at th
 5. **Extract duplicated mock state dict** suggestion -- still applicable. (Suggestion 9 above.)
 6. **`TestMergeLogic` assertions too weak** -- still present, unchanged. (Actionable item 5 above.)
 
-### Alex-Vasile's reviews
+### Prior reviews
 
-**May 26 (CHANGES_REQUESTED)**: Alex flagged that the product-code changes (import refactoring and bug fix) should be in their own PR. Dhiraj responded by creating #7849 to separate them. This has been **addressed** -- the production code changes are no longer in this PR's diff.
+**May 26 (CHANGES_REQUESTED)**: The reviewer flagged that the product-code changes (import refactoring and bug fix) should be in their own PR. The author responded by creating #7849 to separate them. This has been **addressed** -- the production code changes are no longer in this PR's diff.
 
-**June 2 (CHANGES_REQUESTED)**: Alex left a comprehensive round of 20+ comments. Key themes:
+**June 2 (CHANGES_REQUESTED)**: The reviewer left a comprehensive round of 20+ comments. Key themes:
 
 - **`fixSizeInconsistencies` is broken**: The production function uses a generator as a dict key, making dedup a no-op. The test doesn't expose this. (Our Actionable item 6 covers this.)
-- **Weak assertions throughout**: Multiple tests assert only `isinstance(result, list)` or use `>=` instead of `==`. Alex specifically flagged `TestMergeLogic` (all four tests), `fixSizeInconsistencies` tests, and `removeDuplicatedSolutions` tests. (Our Actionable items 5 and 6, and Suggestions 12 cover these.)
+- **Weak assertions throughout**: Multiple tests assert only `isinstance(result, list)` or use `>=` instead of `==`. The reviewer specifically flagged `TestMergeLogic` (all four tests), `fixSizeInconsistencies` tests, and `removeDuplicatedSolutions` tests. (Our Actionable items 5 and 6, and Suggestions 12 cover these.)
 - **Global state mutation**: Tests modify `globalParameters` without cleanup. (Our Actionable item 7.)
 - **Wrong filenames in `test_finds_and_processes_logic_files`**: Files named `logic_gfx908.yaml` don't match the architecture-name search logic. (Our Actionable item 2.)
-- **Mocking defeats purpose**: Several tests mock everything and then check only that mocks were called. Alex specifically called out `test_avoid_regressions_basic` and `test_handles_known_bugs`. (Our Actionable item 4.)
+- **Mocking defeats purpose**: Several tests mock everything and then check only that mocks were called. The reviewer specifically called out `test_avoid_regressions_basic` and `test_handles_known_bugs`. (Our Actionable item 4.)
 - **Tests should verify post-state, not just counts**: `test_sanitize_without_stagger_u` and `removeDuplicatedSolutions` tests don't check data integrity. (Our Actionable item 8, Suggestion 12.)
 - **Parameterize repetitive tests**: The message function tests and similar patterns should use `@pytest.mark.parametrize`. (Our Suggestion 10.)
 
-### tony-davis's approval (May 26)
+### Prior approval (May 26)
 
-tony-davis approved the PR. He verified the dead-code removal (byte-identical bodies) and the `GlobalParameters.globalParameters` bug fix (latent `NameError`). Both of those changes have since been moved to #7849.
+A reviewer approved the PR and verified the dead-code removal (byte-identical bodies) and the `GlobalParameters.globalParameters` bug fix (latent `NameError`). Both of those changes have since been moved to #7849.
 
 ### Items from previous reviews: addressed vs. still present
 
 | Item | Status |
 |------|--------|
-| Product code changes in own PR (Alex, May 26) | **Addressed** -- moved to #7849 |
+| Product code changes in own PR (reviewer feedback) | **Addressed** -- moved to #7849 |
 | `test_main_basic_execution` vacuous pass (our review) | **Still present** |
 | `TestCheckNamedTuple` tests stdlib (our review) | **Still present** |
-| Weak `TestMergeLogic` assertions (our review + Alex, June 2) | **Still present** |
-| `fixSizeInconsistencies` test doesn't expose production bug (Alex, June 2) | **Still present** |
-| Wrong filenames in `test_finds_and_processes_logic_files` (Alex, June 2) | **Still present** |
-| Global state mutation without cleanup (Alex, June 2) | **Still present** |
-| `test_handles_known_bugs` mocks away tested logic (Alex, June 2) | **Still present** |
-| Weak post-state assertions (Alex, June 2) | **Still present** |
+| Weak `TestMergeLogic` assertions (this review plus prior reviewer feedback, June 2) | **Still present** |
+| `fixSizeInconsistencies` test doesn't expose production bug (the reviewer, June 2) | **Still present** |
+| Wrong filenames in `test_finds_and_processes_logic_files` (the reviewer, June 2) | **Still present** |
+| Global state mutation without cleanup (the reviewer, June 2) | **Still present** |
+| `test_handles_known_bugs` mocks away tested logic (the reviewer, June 2) | **Still present** |
+| Weak post-state assertions (the reviewer, June 2) | **Still present** |
 
 ### New issues in this review not previously raised
 

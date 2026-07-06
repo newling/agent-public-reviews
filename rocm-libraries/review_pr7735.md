@@ -86,16 +86,16 @@ Commentary below).
 - **Dead tuple code path in test:** Removed. The test now directly asserts
   on dict keys without an unreachable `else` branch.
 
-**On newling's inline comments — all addressed:**
+**On reviewer inline comments — all addressed:**
 
-- *Loading.cpp comment removed* (Alex replied "Removed").
-- *BenchmarkProblems.py cached-branch comment removed* (Alex replied
+- *Loading.cpp comment removed* (The author replied "Removed").
+- *BenchmarkProblems.py cached-branch comment removed* (The author replied
   "Removed").
-- *TypedDict added* (Alex replied noting that strict runtime checking would
+- *TypedDict added* (The author replied noting that strict runtime checking would
   require mypy or manual asserts, but added the type hints).
-- *Legacy cache removal plan* — Alex confirmed the TODO exists and he has a
+- *Legacy cache removal plan* — The author confirmed the TODO exists and he has a
   personal reminder to follow up.
-- *ISO date format* — Alex confirmed "August" (2026-08-04 = August 4th).
+- *ISO date format* — The author confirmed "August" (2026-08-04 = August 4th).
 
 **Design observations:**
 

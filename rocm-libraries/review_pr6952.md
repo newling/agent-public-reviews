@@ -1,7 +1,6 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
 **PR:** [#6952 — Initial version of test case for streamk with mxfp4 data type](https://github.com/ROCm/rocm-libraries/pull/6952)
-**Author:** pdhirajkumarprasad (Dhiraj)
 **Base:** develop
 **Files:** 20 added (+1,682 lines), 0 modified
 
@@ -163,7 +162,7 @@ maintaining the same parameter coverage.
 
 ## Previous review context
 
-**nakajee (COMMENTED):** Two comments on the initial revision:
+**Reviewer (COMMENTED):** Two comments on the initial revision:
 - Asked to keep `PrintSolutionRejectionReason` commented out (default).
   **Status: addressed** — it is commented out in all files.
 - Asked to remove unnecessary Subtile-related parameters

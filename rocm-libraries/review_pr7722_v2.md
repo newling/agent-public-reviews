@@ -2,7 +2,6 @@
 
 # Review: PR #7722 (v2) -- Added test for ParseArguments, ValidMatrixInstruction, ValidWorkGroup, TensileClientConfig and Activation
 
-**Author**: pdhirajkumarprasad
 **Date reviewed**: 2026-06-02
 **PR**: https://github.com/ROCm/rocm-libraries/pull/7722
 **Status**: OPEN
@@ -46,7 +45,7 @@ Compared to the first version of this PR (reviewed on 2026-05-27),
 this version addresses many of the issues raised in review: empty
 `pass`-only tests, hallucinated method tests, vacuous
 `test_module_exists`, `hasattr` guards, and several requests from
-Alex-Vasile to improve correctness checking. The current version is
+prior review feedback to improve correctness checking. The current version is
 substantially better.
 
 The test quality still varies by file. `test_TensileClientConfig.py`
@@ -83,7 +82,7 @@ def restore_sys_argv():
 asserts `args.Jobs == "16"` (string) and comments that this is
 "inconsistent with default" (which is `int 48`). Line 123 asserts
 `args.Jobs == "32"` (also string). This was raised in the v1 review
-and by archana-ramalingam. The author replied "fixed" but the code
+and by another reviewer. The author replied "fixed" but the code
 is unchanged.
 
 The root cause is in `ParseArguments.py` line 55-58: the `--jobs`
@@ -289,14 +288,14 @@ Our v1 review raised 8 items:
    away the validators** -- **Not addressed.** The tests are
    unchanged and still only test the try/except wrapper.
 
-### Alex-Vasile's review (2026-05-26, CHANGES_REQUESTED)
+### Prior review (2026-05-26, CHANGES_REQUESTED)
 
-Alex's top-level comment: "Most of the tests do not appear to check
+The reviewer's top-level comment: "Most of the tests do not appear to check
 the correctness of the code they exercise beyond checking that it
 doesn't crash/return the correct datatype. The tests need to be
 expanded significantly to test correctness."
 
-Specific inline comments from Alex:
+Specific inline comments from the reviewer:
 
 - **Empty/vacuous tests and hallucinated methods** (multiple items
   in `test_Activation.py`) -- **Addressed.** The empty `pass` tests,

@@ -2,7 +2,6 @@
 
 # Review: PR #7722 — Added test for ParseArguments, ValidMatrixInstruction, ValidWorkGroup, TensileClientConfig and Activation
 
-**Author**: pdhirajkumarprasad
 **Date reviewed**: 2026-05-27
 **PR**: https://github.com/ROCm/rocm-libraries/pull/7722
 **Status**: OPEN

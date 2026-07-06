@@ -1,6 +1,5 @@
 # Review: PR #6657 — rocjitsu: Daemon mode, multi-process, ISA fixes (v2)
 
-**Author**: atgutier
 **Date reviewed**: 2026-06-04
 **PR**: https://github.com/ROCm/rocm-systems/pull/6657
 
@@ -221,9 +220,9 @@ wrong socket. An assertion or error on overflow would catch this.
 never checked. Fine for single-threaded model but an assert would be cheap
 insurance.
 
-### 3. Socket path /tmp fallback TOCTOU risk
+### 3. Socket path temporary fallback TOCTOU risk
 
-The `/tmp/rocjitsu-<uid>` fallback directory could be pre-created by another
+The `<runtime-fallback-dir>` fallback directory could be pre-created by another
 user. Consider `mkdtemp` or ownership verification.
 
 ### 4. Non-atomic static counter in L2 cache

@@ -1,6 +1,5 @@
 # Review: PR #6495 — rocjitsu: SIMD fast-path enablement (third pass)
 
-**Author**: lialan
 **Date reviewed**: 2026-06-04
 **PR**: https://github.com/ROCm/rocm-systems/pull/6495
 **Commit**: `a00762b6ef`
@@ -12,9 +11,9 @@
 
 **Build command**:
 ```
-git fetch origin users/lialan/rocjitsu_simd
+git fetch origin <pr-head-ref>
 git checkout FETCH_HEAD -- emulation/rocjitsu
-cmake --build ~/workspace/builds/rocm-systems-tiberius -j2
+cmake --build $BUILD_DIR -j2
 ```
 
 **Machine**: Low-memory machine (build OOM'd at `-j6`, required `-j2` for the

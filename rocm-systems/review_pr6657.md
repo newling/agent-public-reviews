@@ -1,6 +1,5 @@
 # Review: PR #6657 — rocjitsu: Add daemon and initial support for multiple processes
 
-**Author**: atgutier
 **Date reviewed**: 2026-06-01
 **PR**: https://github.com/ROCm/rocm-systems/pull/6657
 
@@ -14,7 +13,7 @@
 - Release build, no extra CXX flags
 - AMD EPYC 9575F, Linux 6.8.0-38-generic
 
-**Command**: `ctest --test-dir ~/workspace/builds/rocm-systems-claudius -j$(nproc) --output-on-failure`
+**Command**: `ctest --test-dir $BUILD_DIR -j$(nproc) --output-on-failure`
 **Timing**: 103s wall
 **Result**: Flaky failures under parallel execution — **introduced by this PR**
 
@@ -146,10 +145,10 @@ never checked against the sent value. Fine for the current single-threaded
 model, but would silently corrupt if pipelining were ever added. An assert
 would be cheap insurance.
 
-### 2. Socket path /tmp fallback has TOCTOU risk
+### 2. Socket path temporary fallback has TOCTOU risk
 
 The `XDG_RUNTIME_DIR/rocjitsu` path has correct per-user permissions. The
-`/tmp/rocjitsu-<uid>` fallback is riskier — another user could create that
+`<runtime-fallback-dir>` fallback is riskier — another user could create that
 directory first. Consider using `mkdtemp` or verifying ownership after
 `create_directories`.
 

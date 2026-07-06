@@ -2,7 +2,6 @@
 
 # Review: PR #7703 — Add unit test for TensileLogic_Run, TensileMergeLibrary, TensileRetuneLibrary and TensileUpdateLibrary
 
-**Author**: pdhirajkumarprasad
 **Date reviewed**: 2026-05-27
 **PR**: https://github.com/ROCm/rocm-libraries/pull/7703
 **Status**: OPEN

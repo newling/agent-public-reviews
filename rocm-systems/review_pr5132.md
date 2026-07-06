@@ -1,6 +1,5 @@
 # Review: PR #5132 — rocjitsu: Add rocBLAS GEMM test suite and fix ISA bugs
 
-**Author**: atgutier
 **Date reviewed**: 2026-04-20
 **PR**: https://github.com/ROCm/rocm-systems/pull/5132
 

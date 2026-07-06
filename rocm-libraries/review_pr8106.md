@@ -1,7 +1,6 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
 **PR:** [#8106 — [tensilelite] Add fast path reference gemm for MXFP4](https://github.com/ROCm/rocm-libraries/pull/8106)
-**Author:** Alex-Vasile
 **Base:** develop
 **Files:** 4 changed (+825/−115)
 

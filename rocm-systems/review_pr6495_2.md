@@ -1,6 +1,5 @@
 # Review: PR #6495 — rocjitsu: SIMD fast-path enablement (second pass)
 
-**Author**: lialan
 **Date reviewed**: 2026-06-02
 **PR**: https://github.com/ROCm/rocm-systems/pull/6495
 **Commit**: `6f8223a801`
@@ -65,7 +64,7 @@ overhead is negligible (1.3s for 200 additional tests).
    ISAs produce different bodies for the same `(mnemonic, enc_name)` key,
    `setdefault` silently keeps whichever was processed first. An
    `assert existing == new` on duplicate writes would catch silent
-   regressions at codegen time with zero runtime cost. lialan's response
+   regressions at codegen time with zero runtime cost. The author's response
    did not address this item.
 
 ## New findings
@@ -128,7 +127,7 @@ NaN-input lanes with a sentinel before the A/B comparison, effectively
 skipping them. This is documented as an "accepted divergence" in the test
 file headers.
 
-lialan commented "let's do a follow up for the NaN relevant stuffs."
+the author commented "let's do a follow up for the NaN relevant stuffs."
 The NaN follow-up should track:
 
 - Whether SIMD NaN payloads need to match scalar (and thus real HW) exactly

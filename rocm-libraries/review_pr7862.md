@@ -9,7 +9,7 @@ The existing script at `projects/hipblaslt/utilities/fix_yaml_types.py` has a co
 I manually tested the script by creating synthetic YAML files and running it:
 
 ```
-python projects/hipblaslt/tensilelite/scripts/fix_yaml_types.py /tmp/test_yaml_fixer --verbose
+python projects/hipblaslt/tensilelite/scripts/fix_yaml_types.py $TMP_YAML_FIXTURE --verbose
 ```
 
 The script runs without errors and performs the conversions it claims to. I also tested `--list-parameters` and `--dry-run`, both of which work.
@@ -90,7 +90,7 @@ The overall architecture of this PR -- a separate class with configurable type m
 
 ## Previous review context
 
-Alex-Vasile (GitHub: Alex-Vasile) reviewed this PR and requested changes. He raised four points:
+A reviewer requested changes and raised four points:
 
 1. **"How did you assemble this list?"** (comment on lines 66-107, the PARAMETER_TYPES dictionary) -- Asking for the provenance of the parameter list. This overlaps with my actionable item #3 (DataTypeC/DataTypeD don't exist) and my suggestion #2 (derive the list from source). The question is unaddressed in the current code.
 
@@ -100,4 +100,4 @@ Alex-Vasile (GitHub: Alex-Vasile) reviewed this PR and requested changes. He rai
 
 4. **"This will strip all comments out of the files."** (comment on lines 275-276, the yaml.safe_load/yaml.dump approach) -- Flagging the formatting destruction issue. This directly overlaps with my actionable item #1, which is the most critical issue. The question is unaddressed in the current code.
 
-All four of Alex's points are valid and remain unaddressed. My review independently identified the same issues and provides additional detail (e.g. the nonexistent `DataTypeC`/`DataTypeD` parameters, the unused `os` import, and the concrete recommendation to extend the existing script rather than creating a new one).
+All four of the reviewer's points are valid and remain unaddressed. My review independently identified the same issues and provides additional detail (e.g. the nonexistent `DataTypeC`/`DataTypeD` parameters, the unused `os` import, and the concrete recommendation to extend the existing script rather than creating a new one).

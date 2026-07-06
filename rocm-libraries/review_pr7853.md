@@ -1,7 +1,6 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
 **PR:** [#7853 — [tensilelite] Add coverage for cpp files](https://github.com/ROCm/rocm-libraries/pull/7853)
-**Author:** yash-amd (Yash Rathore)
 **Base:** develop
 **Files:** 4 changed (+171 lines)
 
@@ -34,7 +33,7 @@ new `tox -e coverage-cpp` environment and a corresponding
 3. Merges `.profraw` files via `llvm-profdata`, exports to LCOV format
    via `llvm-cov`, and generates HTML + Cobertura XML reports.
 
-This is the revised version after talumbau requested dropping the
+This is the revised version after prior review feedback requested dropping the
 combined Python+C++ merge approach. The current PR keeps C++ coverage
 entirely separate from the existing Python coverage pipeline.
 
@@ -66,19 +65,19 @@ entirely separate from the existing Python coverage pipeline.
    coverage" but `merge_coverage.py` was removed in a previous revision
    of this PR.
 
-4. **`tox.ini:198` — hardcoded `/opt/rocm/lib/llvm/lib` in
+4. **`tox.ini:198` — hardcoded `$ROCM_PATH/lib/llvm/lib` in
    `LD_LIBRARY_PATH`.** The path assumes the default ROCm installation
    location, but `build_coverage` (in `tasks.py`) uses `_detect_rocm()`
    which can find ROCm elsewhere. If someone has ROCm at a non-default
    path, the tox environment will break even though the build step
-   succeeds. Consider using `{env:ROCM_PATH:/opt/rocm}/lib/llvm/lib`.
+   succeeds. Consider using `{env:ROCM_PATH}/lib/llvm/lib`.
 
 ## Suggestions
 
 1. **`tox.ini:229-230` — no validation that LLVM tools exist.** If
    `llvm-profdata` or `llvm-cov` are not on `PATH`, `$(which ...)` returns
    empty and subsequent commands fail with unhelpful errors. A guard like
-   `command -v llvm-profdata >/dev/null || { echo "llvm-profdata not found"; exit 1; }`
+   `command -v llvm-profdata >"$NULL_DEVICE" || { echo "llvm-profdata not found"; exit 1; }`
    would improve debuggability.
 
 2. **`tox.ini:197` — dead `LLVM_PROFILE_FILE` in `setenv`.** The value
@@ -100,7 +99,7 @@ entirely separate from the existing Python coverage pipeline.
 
 ## Commentary
 
-The separate `coverage-cpp` environment addresses talumbau's core
+The separate `coverage-cpp` environment addresses the reviewer's core
 feedback: the C++ coverage pipeline no longer touches the Python coverage
 infrastructure. The CMakeLists changes and `build_coverage` task are
 clean building blocks.
@@ -121,13 +120,13 @@ comment.
 
 The overall approach (LLVM instrumentation, profdata merge, lcov export)
 is the standard way to get C++ coverage into codecov-compatible formats.
-The remaining question from talumbau's review — whether this should
+The remaining question from the prior review — whether this should
 upload to codecov as a separate `TensileLiteCPP` flag — is a CI/CD
 configuration choice outside the scope of this diff.
 
 ## Previous review context
 
-**talumbau (CHANGES_REQUESTED):** Asked to drop `merge_coverage.py` and
+**Reviewer (CHANGES_REQUESTED):** Asked to drop `merge_coverage.py` and
 the combined Python+C++ coverage approach, suggesting instead a separate
 codecov flag (`TensileLiteCPP`) with the LLVM pipeline kept independent.
 **Status: addressed.** The merge script is gone and `coverage-cpp` is
@@ -138,16 +137,16 @@ companion PR (rocJenkins #1826), which adds a presubmit CI job that runs
 follows the same pattern as the existing `TensileLite` Python coverage
 flag.
 
-**Alex-Vasile (COMMENTED):** Asked about a `DataInitialization.hpp`
+**Reviewer (COMMENTED):** Asked about a `DataInitialization.hpp`
 change that was included to fix a build error with coverage
 instrumentation (`isMXProblem` undefined). The author explained the test
 was calling a removed function. **Status: addressed.** The C++ test
 fixes have been reverted out of this PR into a separate PR, per the
 author's comment.
 
-**newling (COMMENTED):** Asked several clarifying questions:
+**Reviewer (COMMENTED):** Asked several clarifying questions:
 
-- *`tox.ini:198` — what is `/opt/rocm/lib/llvm/lib`?* This is the LLVM
+- *`tox.ini:198` — what is `$ROCM_PATH/lib/llvm/lib`?* This is the LLVM
   runtime library directory shipped with ROCm (contains `libclang_rt`
   profiling runtime, needed for instrumented binaries). **Overlaps with
   actionable item #4 above** — the path is hardcoded and should use
@@ -174,7 +173,7 @@ author's comment.
   would be a style improvement across the file, not specific to this PR.
 
 - *CMakeLists — `add_compile_options` vs `target_compile_options`.*
-  **Directly overlaps with actionable item #1 above.** newling asked
+  **Directly overlaps with actionable item #1 above.** the reviewer asked
   whether the difference is intentional; our independent analysis
   confirms it is not — `add_compile_options` at directory scope is
   overly broad and should be `target_compile_options` on

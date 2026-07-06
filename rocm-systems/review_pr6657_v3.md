@@ -1,6 +1,5 @@
 # Review: PR #6657 — rocjitsu: Daemon mode, multi-process, ISA fixes (v3)
 
-**Author**: atgutier
 **Date reviewed**: 2026-06-04
 **PR**: https://github.com/ROCm/rocm-systems/pull/6657
 
@@ -16,7 +15,7 @@
 
 **Build**: Clean — all 352 targets compile. Zero errors, zero warnings.
 
-**Command**: `ctest --test-dir ~/workspace/builds/rocm-systems-claudius -j6 --output-on-failure -E "DaemonTest|RcclDaemon|Large_2048|RocblasGemm|Rocminfo"`
+**Command**: `ctest --test-dir $BUILD_DIR -j6 --output-on-failure -E "DaemonTest|RcclDaemon|Large_2048|RocblasGemm|Rocminfo"`
 
 **Result**: 385/385 pass (8.5s wall)
 

@@ -2,7 +2,6 @@
 
 # Review: PR #7707 — Added unit test for KernelWriterBetaOnly, ShiftVectorComponents and WorkGroupMappingAlgos
 
-**Author**: pdhirajkumarprasad
 **Date reviewed**: 2026-05-27
 **PR**: https://github.com/ROCm/rocm-libraries/pull/7707
 **Status**: OPEN

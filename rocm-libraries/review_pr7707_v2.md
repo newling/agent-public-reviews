@@ -2,7 +2,6 @@
 
 # Review: PR #7707 -- Unit tests for KernelWriterBetaOnly, WorkGroupMappingAlgos, and circular import refactor
 
-**Author**: pdhirajkumarprasad (Dhiraj)
 **Date reviewed**: 2026-06-02
 **PR**: https://github.com/ROCm/rocm-libraries/pull/7707
 **Commits reviewed**: `4b97726c20c` and `ceddc2a715e`
@@ -24,7 +23,7 @@ python -m pytest Tensile/Tests/unit/ -v -k "KernelWriterBetaOnly or WorkGroupMap
 ```
 **Result:** 38 passed, 849 deselected in 23.09s.
 
-Note: The PR title mentions `test_ShiftVectorComponents.py` but the updated version of the PR has removed that file entirely (following Alex's feedback that the mocking was too heavy to be useful). The title should be updated.
+Note: The PR title mentions `test_ShiftVectorComponents.py` but the updated version of the PR has removed that file entirely (following reviewer feedback that the mocking was too heavy to be useful). The title should be updated.
 
 **Existing test breakage:** The `conftest.py` replacement removes the `pytest_addoption` function that registered CLI options (`--mn`, `--mt`, `--wave-config`, `--dump-asm`, `--dump-store-insts`, `--asm-output-dir`, `--print-ref`, `--subtile-map`, `--init-mode`, `--dtype`) and the `skip_parametrized_if_cli` autouse fixture. Running `pytest Tensile/Tests/unit/test_storeD_roundtrip.py --mn 23,17` now fails with `unrecognized arguments: --mn 23,17`. While the tests still collect and pass without those arguments, the CLI-driven test workflow is broken.
 
@@ -134,9 +133,9 @@ Our previous review raised:
 - **Weak assertions in KernelWriterBetaOnly** that pass for any config.
 - **ShiftVectorComponents mocking too heavy**: tests were crash-tests, not correctness tests.
 
-### Alex-Vasile's first review (May 26, 2026)
+### First prior review (May 26, 2026)
 
-Alex requested changes on:
+The reviewer requested changes on:
 - `assert callable(...)` tests adding no value (WorkGroupMappingAlgos lines 136, 335)
 - Permanent skip test on float8_fnuz (KernelWriterBetaOnly line 99)
 - Duplicated `create_basic_state` (KernelWriterBetaOnly line 51)
@@ -144,15 +143,15 @@ Alex requested changes on:
 - Excessive mocking in ShiftVectorComponents (lines 118, 134)
 - SpaceFillingCurveWalk tests not validating the algorithm (line 653)
 
-### tony-davis's review (May 26, 2026)
+### Prior review (May 26, 2026)
 
-tony-davis acknowledged the difficulty of unit-testing code generators and suggested:
+A reviewer acknowledged the difficulty of unit-testing code generators and suggested:
 - Assertions on properties of the returned `Module` (opcode counts, label structure, expected operand patterns) would be more valuable than mock-call tracking.
 - Offered to pair on patterns for testing code-generator-style code.
 
-### Alex-Vasile's second review (June 2, 2026)
+### Second prior review (June 2, 2026)
 
-Alex left a new CHANGES_REQUESTED review on the updated code:
+The reviewer left a new CHANGES_REQUESTED review on the updated code:
 - `Component.py` line 251: Comment explaining the move belongs in the PR description, not in the final diff.
 - `conftest.py` line 20: All files need type hints for args and returns.
 - `test_WorkGroupMappingAlgos.py` line 90: scalarUInt24DivideAndRemainderPair tests are unclear in what they verify -- the function unconditionally returns a non-empty module.
@@ -163,7 +162,7 @@ Alex left a new CHANGES_REQUESTED review on the updated code:
 ### What has been addressed vs. still present
 
 **Addressed from previous reviews:**
-- The `test_ShiftVectorComponents.py` file was removed entirely (responding to Alex's and our feedback that the mocking was too heavy).
+- The `test_ShiftVectorComponents.py` file was removed entirely (responding to review feedback that the mocking was too heavy).
 - The permanently-skipped `test_init_float8_fnuz` was removed.
 - The vacuous `assert callable(...)` tests were removed.
 - `create_basic_state` was consolidated into a shared `basic_state` fixture in `conftest.py`.
@@ -173,10 +172,10 @@ Alex left a new CHANGES_REQUESTED review on the updated code:
 
 **Still present / newly introduced:**
 - Weak assertions in KernelWriterBetaOnly (items 5, 7 from our previous review) remain unchanged.
-- WorkGroupMappingAlgos tests still only verify "module is not None" -- no correctness verification (Alex's June 2 feedback, tony-davis's suggestion).
-- Type hints missing (Alex's June 2 feedback).
-- `# Removed:` comments left in code (Alex's June 2 feedback).
-- Magic number `>= 4` in assertions unexplained (Alex's June 2 feedback).
+- WorkGroupMappingAlgos tests still only verify "module is not None" -- no correctness verification (reviewer feedback, another reviewer's suggestion).
+- Type hints missing (reviewer feedback).
+- `# Removed:` comments left in code (reviewer feedback).
+- Magic number `>= 4` in assertions unexplained (reviewer feedback).
 
 **New issues not in previous reviews:**
 - **CRITICAL**: The circular import fix breaks `Component.ShiftVectorComponents` auto-registry -- this is a runtime-breaking change that was not present in the original PR version because the production code changes are new in the "Updated based on feedback" commit.

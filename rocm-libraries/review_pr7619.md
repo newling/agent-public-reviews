@@ -2,7 +2,6 @@
 
 # Review: PR #7619 — Enable code coverage through unit test for BenchmarkSplitter and Configuration
 
-**Author**: pdhirajkumarprasad
 **Date reviewed**: 2026-05-27
 **PR**: https://github.com/ROCm/rocm-libraries/pull/7619
 **Status**: OPEN

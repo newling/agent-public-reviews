@@ -8,7 +8,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 **Build command:**
 
 ```bash
-cmake --build /home/jnewling/workspace/builds/rocm-systems-tiberius --parallel 8 --target rocjitsu_tests hsa_dbi_nop_asm_test hsa_dbi_nop_probe_test probe_fixture_test
+cmake --build $BUILD_DIR --parallel 8 --target rocjitsu_tests hsa_dbi_nop_asm_test hsa_dbi_nop_probe_test probe_fixture_test
 ```
 
 **Build result:** passed.
@@ -16,7 +16,7 @@ cmake --build /home/jnewling/workspace/builds/rocm-systems-tiberius --parallel 8
 **Focused test command:**
 
 ```bash
-/usr/bin/time -p ctest --test-dir /home/jnewling/workspace/builds/rocm-systems-tiberius -R 'Probe|probe|TrampolineBuilder|InstructionBuilder|InstrumentorPatch|InstrumentorPatchElfShape|InstrumentorPatchDecoded|Spill|Validator|HsaDbiNop' --output-on-failure --timeout 60
+time -p ctest --test-dir $BUILD_DIR -R 'Probe|probe|TrampolineBuilder|InstructionBuilder|InstrumentorPatch|InstrumentorPatchElfShape|InstrumentorPatchDecoded|Spill|Validator|HsaDbiNop' --output-on-failure --timeout 60
 ```
 
 **Focused test result:** 155/155 passed, 0 failed, 0 skipped, 0 errored. CTest reported 2.45s real time.

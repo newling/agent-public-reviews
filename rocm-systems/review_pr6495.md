@@ -1,6 +1,5 @@
 # Review: PR #6495 — rocjitsu: SIMD fast-path enablement
 
-**Author**: lialan
 **Date reviewed**: 2026-06-01
 **PR**: https://github.com/ROCm/rocm-systems/pull/6495
 
@@ -8,7 +7,7 @@
 
 ## Tests
 
-**Command**: `ctest --test-dir ~/workspace/builds/rocm-systems-claudius -j$(nproc) --output-on-failure`
+**Command**: `ctest --test-dir $BUILD_DIR -j$(nproc) --output-on-failure`
 **Build**: g++-13, Release, no `-march=native` (project default)
 **Timing**: 94s wall (dominated by `RocblasGemmTest.Large_2048x2048` at 94s; the 187 new SIMD tests complete in 0.36s)
 **Result**: 596/611 passed, 15 failed
@@ -116,7 +115,7 @@ regressions at codegen time with zero runtime cost.
 
 ## Reviewer comments assessment
 
-The reviewer (newling) left several inline comments. Assessment of each:
+The reviewer left several inline comments. Assessment of each:
 
 ### Agree
 

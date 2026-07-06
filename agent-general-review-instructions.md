@@ -22,6 +22,30 @@ but should not use existing reviews as validation for their points.
 Try to review as much as possible without being biased by existing
 reviews.
 
+## Staging
+
+When asked to stage review work for commit, stage only tracked files
+that changed. Leave newly created review files untracked unless the
+reviewer explicitly asks to stage new files too.
+
+## Public hygiene
+
+Reviews in this repository are public artifacts. Do not include private
+machine paths, home-directory paths, local build-directory names, or
+temporary-directory paths. Use neutral placeholders such as `$BUILD_DIR`,
+`$SRC_DIR`, `$ROCM_PATH`, or `<device-path>` when an exact local path is
+not needed to understand the result.
+
+Do not identify people by personal names, local usernames, email
+addresses, or GitHub handles. Use role-based wording such as "the
+author", "the reviewer", or "a reviewer". Omit `Author` metadata fields
+from review files. If a branch name or PR head ref contains a person's
+handle, replace it with a neutral placeholder such as `<pr-head-ref>`.
+
+Do not mention private workspace/session names or labels. Keep commands
+and test notes reproducible without exposing which local workspace was
+used.
+
 ## Testing
 
 Run all new tests in the PR locally. In the review, report:
