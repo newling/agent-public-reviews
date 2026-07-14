@@ -4,6 +4,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **PR reviewed:** ROCm/rocm-systems#6962
 **Commit reviewed:** `148e935736` (`fix(rocjitsu): address CPU dispatch review`)
+**Latest PR head checked after review discussion:** `7b70cba829`
 
 **PR metadata:** public PR against public `ROCm/rocm-systems`, base `develop`, head
 `ROCm:<pr-head-ref>`.
@@ -86,6 +87,11 @@ Result: passed with no whitespace errors.
 `therock-pr-bot`, TheRock summary, and package builds passing. Several
 hardware-specific jobs were skipped.
 
+**Later review status:** after this review was written, additional human review
+requested changes. The current blocking direction is to land/rebase on the TSAN
+support work first, document the plugin serialization contract, and split the
+orthogonal DBT executable-range helper out of this CPU-dispatch-threading PR.
+
 ## Summary
 
 This PR adds host-side parallel execution for rocjitsu functional-mode dispatch
@@ -106,6 +112,11 @@ than redundantly flushing through every CU.
 
 None. I did not find a concrete correctness issue beyond the questions already
 raised in inline review discussion.
+
+After the later human review, I agree this PR should not proceed unchanged:
+the DBT executable-range helper is orthogonal to CPU dispatch threading and the
+plugin serialization behavior needs to be documented before the thread-count
+knobs are considered clear.
 
 ## Suggestions
 
