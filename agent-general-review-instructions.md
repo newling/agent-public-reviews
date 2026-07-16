@@ -16,11 +16,49 @@ before suggesting them. The best review makes it very clear what needs
 to be done to get the PR to a state you like, without writing the code
 for the author.
 
-Reviews should be independent of any existing reviews on the PR. They
-can comment on what aspects of previous reviews have been addressed,
-but should not use existing reviews as validation for their points.
-Try to review as much as possible without being biased by existing
-reviews.
+All else equal, prefer feedback that aligns the change with the project's existing conventions, helper APIs, and abstraction boundaries.
+
+Reviews should be independent of any existing reviews on the PR. Unless
+the reviewer explicitly asks you to look at other reviews, do not read
+existing GitHub PR reviews, inline comments, review threads, or
+discussion comments. Use the PR description, diff, relevant repository
+context, local testing, and CI status as your inputs. If the reviewer
+does ask for a follow-up review that considers comments, identify that
+as a different review mode and independently evaluate the comments
+instead of treating them as validation.
+
+## Review depth
+
+Do a cautious contract pass over every new or materially changed API,
+helper, data structure, file format, configuration knob, and cross-module
+behavior. Identify the implied contract: inputs, outputs,
+ownership/lifetime, ordering or consistency guarantees, fallback
+behavior, persistence/serialization behavior, error handling, and caller
+obligations. If shared or low-level code relies on an undocumented or
+untested contract, consider that an actionable issue even if the current
+implementation happens not to fail in the obvious path.
+
+Do a counterexample pass after you understand the intended behavior.
+Construct small cases around boundary values, empty and partially
+initialized state, overlapping operations, repeated calls, mixed old and
+new paths, fallback paths, ownership/lifetime transitions, and
+serialization or restoration boundaries. Report any counterexample that
+would violate the apparent contract.
+
+Compare the PR's stated purpose and the code's apparent intent against
+direct test coverage. New low-level helpers, changed shared paths, and
+new behavior boundaries should have direct tests or a clear reason they
+do not. Do not treat broad integration tests or passing CI as sufficient
+coverage for a new primitive unless they exercise the relevant edge
+cases.
+
+Before writing that there are no actionable items, explicitly reconsider
+whether the PR includes any new APIs without documented contracts, new
+helpers without direct tests, changed fallback paths, changed
+serialization/persistence behavior, changed ownership/lifetime behavior,
+or names/files whose placement obscures behavior. Promote these to
+actionable items when they create a concrete maintenance or correctness
+risk; otherwise explain why they are only suggestions or residual risk.
 
 ## Staging
 
