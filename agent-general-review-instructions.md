@@ -86,7 +86,16 @@ used.
 
 ## Testing
 
-Run all new tests in the PR locally. In the review, report:
+Testing supports the review; the number of tests run is not a measure of review
+quality. Prioritize understanding the design, contracts, changed code, and
+concrete downstream paths over accumulating broad test results.
+
+Run new or changed tests that are directly relevant and reasonably quick. Do
+not attempt an exhaustive local test run by default. If the relevant tests are
+slow, select representative cases that exercise the changed contract and rely
+on CI for broader coverage. Explain that choice in the review.
+
+For tests that you do run, report:
 
 - The exact command used to run the tests.
 - How long the tests took.
@@ -99,6 +108,33 @@ Run all new tests in the PR locally. In the review, report:
   Report what you find.
 
 If you were unable to run the tests, explain why.
+
+### Test selection
+
+Select additional tests from the changed files, changed contracts, and concrete
+downstream call paths established during the review. Do not prioritize a
+subsystem merely because it is an active project work area, appeared in recent
+reviews, or is familiar to the reviewer.
+
+Run a secondary subsystem's tests only when the diff touches shared behavior
+that the subsystem demonstrably consumes, or when the reviewer explicitly asks
+about that subsystem. Explain the dependency that makes those tests relevant.
+Prefer focused tests for the affected path over a broad subsystem suite.
+
+Avoid broad or exhaustive subsystem suites when a small number of focused tests
+provide sufficient evidence, especially for slow integration, hardware,
+emulation, or corpus tests. It is acceptable to omit slow tests that duplicate
+green CI coverage. State what was omitted and why, without treating the omission
+as an inherent review deficiency.
+
+Stop testing once the important changed contracts and credible counterexamples
+have adequate evidence. Spend the remaining review effort on code inspection,
+API boundaries, failure modes, and maintainability rather than expanding the
+test matrix without a concrete question.
+
+Keep exploratory or follow-up tests separate from the PR's primary validation
+in the written review. Do not present a fast but weakly related test suite as
+evidence for the main change.
 
 ## Review structure
 
