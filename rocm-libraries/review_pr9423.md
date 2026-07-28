@@ -1,6 +1,8 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
-**PR:** #9423 — `fix(hipblaslt): gate code-object load-path env vars behind secure getenv`
+**PR:** [#9423 — `fix(hipblaslt): gate code-object load-path env vars behind secure getenv`](https://github.com/ROCm/rocm-libraries/pull/9423)
+**Base:** `develop`
+**Files:** 7 changed (+320/-27)
 **Assessment:** APPROVED
 **Risk:** 3/5 — narrow but security-sensitive behavior in three core library-loading paths,
 with normal-process behavior preserved and direct policy tests.

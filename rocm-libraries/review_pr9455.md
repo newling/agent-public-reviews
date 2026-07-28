@@ -1,6 +1,8 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
-**PR:** #9455 — `fix: replace unsafe yaml.load with safe loaders and add bandit B506 gate`
+**PR:** [#9455 — `fix: replace unsafe yaml.load with safe loaders and add bandit B506 gate`](https://github.com/ROCm/rocm-libraries/pull/9455)
+**Base:** `develop`
+**Files:** 27 changed (+76/-48)
 **Assessment:** APPROVED
 **Risk:** 2/5 — test/utility YAML parsing and static-analysis configuration, with no
 kernel or runtime-library behavior change.

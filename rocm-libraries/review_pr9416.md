@@ -1,6 +1,8 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
-**PR:** #9416 — `fix(tensile): replace eval() with ast.literal_eval in CLI key=value parsers`
+**PR:** [#9416 — `fix(tensile): replace eval() with ast.literal_eval in CLI key=value parsers`](https://github.com/ROCm/rocm-libraries/pull/9416)
+**Base:** `develop`
+**Files:** 8 changed (+242/-12)
 **Assessment:** APPROVED
 **Risk:** 2/5 — host-side CLI parsing only, with direct regression coverage.
 
