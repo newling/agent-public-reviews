@@ -157,3 +157,58 @@ The previous review's release-validation and GCC findings are resolved, and
 the submitted whole-XCD mapping passes the focused single-GPU, multi-GPU,
 public C-API, and real-kernel coverage. The remaining item is isolated to the
 generic balanced-policy boundary rather than the rocjitsu XCD policy itself.
+
+## Appendix: external-owner counterexample
+
+The following temporary regression was added beside the existing
+`TopologyPartitionTest` cases in
+`emulation/rocjitsu/tests/simdojo_sim_test.cpp`. It uses the file's existing
+`ProducerComponent` and `ConsumerComponent` test helpers:
+
+```cpp
+TEST(TopologyPartitionTest, BalancedPartitionHandlesExternalLinkOwner) {
+  Topology topology;
+  auto root = std::make_unique<CompositeComponent>("root");
+  auto consumer = std::make_unique<ConsumerComponent>("consumer");
+  auto *consumer_ptr = consumer.get();
+  root->add_child(std::move(consumer));
+  topology.set_root(std::move(root));
+
+  ProducerComponent external("external", 0, 1, false);
+  topology.add_link(external.out_port(), consumer_ptr->in_port(), 1);
+
+  topology.partition_balanced(2);
+
+  EXPECT_LT(external.partition_id(), 2u);
+  size_t occurrences = 0;
+  for (const auto &partition : topology.partitions())
+    occurrences +=
+        std::count(partition.components.begin(), partition.components.end(), &external);
+  EXPECT_EQ(occurrences, 1u);
+}
+```
+
+On the submitted implementation, execution does not reach either expectation:
+`partition_balanced(2)` leaves `external.partition_id()` equal to
+`INVALID_PARTITION_ID`, and `classify_links()` uses that value as an index into
+the partition vector and segfaults.
+
+The prototype fix collected each unique link-endpoint owner before constructing
+the adjacency graph:
+
+```cpp
+auto components = collect_all_components();
+std::unordered_set<Component *> collected(components.begin(), components.end());
+for (auto &link : links_) {
+  for (Component *owner : {link->src()->owner(), link->dst()->owner()}) {
+    if (owner && collected.insert(owner).second)
+      components.push_back(owner);
+  }
+}
+```
+
+With that prototype, the regression and the submitted
+`RepartitionRetainsExternalLinkOwnerOnce` test both passed. The production
+snippet is included only to document how the diagnosis was confirmed; the
+actionable item intentionally allows either including external owners or
+rejecting them before partition state is mutated.
