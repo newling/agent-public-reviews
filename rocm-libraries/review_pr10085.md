@@ -97,6 +97,15 @@ documented BLIS issue. The build interface also already exposes
 `HIPBLASLT_ENABLE_BLIS` / `--cpu-ref-lib blis|lapack`; with BLIS disabled, the
 LAPACK/BLAS dependency can resolve to OpenBLAS as it did here.
 
+The later PR discussion reports an f16 8192-cubed CPU-reference time of
+8371.5 ms and a GPU-reference time of 598.6 ms. For context, a NumPy/OpenBLAS
+float32 8192-cubed SGEMM on this review host took 566 ms with 12 physical CPU
+cores. A closer NumPy model that converted f16 A/B/C to f32, ran SGEMM with
+beta=1, and converted the result back to f16 took 1716 ms. This is not a
+machine-to-machine benchmark: the PR results do not identify the host CPU,
+thread count, or CBLAS provider. It does show that those details are
+load-bearing when interpreting the reported 8.37-second baseline.
+
 NumPy f32 is therefore not orders of magnitude faster than the real hipBLASLt
 CPU path at large sizes; they are in the same broad range, and both ultimately
 use optimized BLAS. NumPy f16 is not a useful fast-BLAS baseline: on this system
@@ -109,13 +118,13 @@ The README's retained 128-cubed example reports `ref-us=43688` (43.7 ms and
 hipBLASLt wrapper and over an order slower than its first invocation here. It is
 an old static example, not credible performance evidence for this PR.
 
-No corresponding GPU-reference timings are supplied by the PR, and none could
-be collected locally. Consequently the claimed speedup, crossover size, and
-type dependence cannot currently be established. The likely benefit is limited
-to verification: computing `D_gold` and comparing output on the device avoids
-the host reference computation, device-to-host output transfer, and host-side
-comparison. It does not accelerate the hipBLASLt kernel, solution search, data
-initialization, or normal unverified benchmark path.
+The PR discussion now supplies a useful CPU/GPU timing table, but the omitted
+host CPU, thread count, and CBLAS provider prevent a controlled interpretation
+of the baseline or crossover. The benefit is limited to verification:
+computing `D_gold` and comparing output on the device avoids the host reference
+computation, device-to-host output transfer, and host-side comparison. It does
+not accelerate the hipBLASLt kernel, solution search, data initialization, or
+normal unverified benchmark path.
 
 ## Summary
 
@@ -236,7 +245,8 @@ differences from drift.
    throughput of either reference. Renaming the long-standing `CPU-us` and
    `CPU-Gflops` columns for default CPU mode also changes the CSV schema for
    downstream consumers. The README keeps an implausibly slow old 128-cubed
-   baseline while the PR supplies no CPU-vs-GPU measurements.
+   baseline. The later discussion supplies CPU-vs-GPU measurements, but not the
+   host and CBLAS details needed to reproduce or interpret the CPU baseline.
 
    Preserve or version the existing CPU column names, and report separate
    `cpu-ref-us` and `gpu-ref-us` values in both mode rather than summing them.
@@ -244,8 +254,11 @@ differences from drift.
    small in-tree GEMM. Before merge, provide reference-only and end-to-end
    verification timings for representative small/large shapes, f32/f16/bf16,
    and at least the CI architectures. Include warm/cold policy, thread count,
-   CBLAS provider, GPU architecture, and comparison/copy costs. This is needed
-   to establish what the change actually speeds up and where it regresses.
+   CBLAS provider, GPU architecture, and comparison/copy costs. Also state the
+   intended workflow: interactive client development, tuning, precheckin CI,
+   broader CI, or some combination. For CI, report the affected jobs' current
+   validation time and expected wall-time/resource savings. This is needed to
+   establish what the change actually speeds up and where it regresses.
 
 ## Suggestions
 
