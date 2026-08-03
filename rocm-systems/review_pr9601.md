@@ -72,6 +72,9 @@ does not record an observed run. During per-GPU FMM setup, failure of
 `drmSyncobjCreate` logs `Failed to create VM timeline syncobj`; a later VMM MAP
 still issues GEM_VA and then reports
 `DRM_IOCTL_SYNCOBJ_TIMELINE_WAIT failed after MAP` when the wait ioctl fails.
+The pre-PR rocjitsu GEM_VA handler ignored the timeline fields and applied the
+mapping before that unsupported wait failed, so the overall ROCr operation
+could return an error after partially mutating the GPU address space.
 
 **DRM-file namespace and binary-syncobj counterexamples:**
 
@@ -125,6 +128,25 @@ application. The focused run covers every submitted interposer case and both
 concrete boundary counterexamples. The public release and sanitizer corpus jobs
 provide broader simulator coverage, but the PR does not demonstrate that any
 of those jobs executes the explicit ROCr VMM timeline path above.
+
+**Evidence and confidence calibration:**
+
+- The foreign GEM-handle MAP is a directly reproduced correctness bug with
+  high confidence: the second independent DRM open successfully installs a
+  mapping using the first file's handle. Applying the same ownership boundary
+  to UNMAP, CLEAR, and GEM_CLOSE follows from the same file-private namespace,
+  but those additional operations should each receive their own regression.
+- Point-zero rejection is a directly reproduced DRM API-contract mismatch with
+  high confidence. Its demonstrated impact on the motivating ROCr path is
+  lower: current ROCr advances its VM timeline from point 1, so this appears to
+  be unsupported valid binary-syncobj behavior rather than the immediate cause
+  of the reported ROCr VMM failure.
+- The pre-PR partial-mutation sequence is source-derived rather than captured
+  from an end-to-end run: syncobj creation could fail, GEM_VA could still apply
+  the mapping while ignoring timeline fields, and the later timeline wait
+  could report the overall operation as failed.
+- The invalid-user-pointer and source-matched VMM-test items are strict-review
+  hardening suggestions, not blockers established by a current ROCr failure.
 
 ## Summary
 
@@ -225,6 +247,11 @@ path uses for a signaled binary fence.
 Allow point zero whenever an output syncobj handle is present. Add direct MAP,
 UNMAP, and CLEAR coverage that waits on point zero afterward, and retain a
 control showing that handle zero still means "no output syncobj".
+
+This is an actionable contract-completeness issue because point zero is valid
+DRM behavior and the commit description claims to model it. It is lower
+priority than the GEM namespace violation for the stated ROCr use case:
+current ROCr supplies nonzero, incrementing VM timeline points.
 
 ## Suggestions
 
