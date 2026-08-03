@@ -16,6 +16,15 @@ before suggesting them. The best review makes it very clear what needs
 to be done to get the PR to a state you like, without writing the code
 for the author.
 
+When an actionable item is supported by a temporary regression test, probe, or
+counterexample that is removed from the checkout after validation, preserve the
+exact minimal source in an appendix to the review. Include enough surrounding
+setup or helper assumptions for the author to compile and run it without
+reconstructing the test from prose. Omit an appendix only when the reproducer is
+already committed in the PR/repository or is too large to include usefully; in
+that case, provide a precise standalone command or a public artifact containing
+the reproducer.
+
 All else equal, prefer feedback that aligns the change with the project's existing conventions, helper APIs, and abstraction boundaries.
 
 Reviews should be independent of any existing reviews on the PR. Unless
