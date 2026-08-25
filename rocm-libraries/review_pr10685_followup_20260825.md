@@ -1,5 +1,7 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
+**PR:** [#10685 — `test(tensilelite): add mutation execution safety core`](https://github.com/ROCm/rocm-libraries/pull/10685)
+
 **Scope:** latest #10685 head `62ec407ab3e`, plus the published descendant
 stack through #10858 head `df9d99e308d`
 
