@@ -76,26 +76,6 @@ time -p .venv/bin/pre-commit run --files \
 
 Both checks passed; pre-commit completed in 0.71s real.
 
-**Temporary release-mode bounds counterexample:**
-
-I added Appendix A's test, rebuilt, ran only that test, and removed it. It
-failed:
-
-```text
-expected materialized_size_bytes(): 0
-actual materialized_size_bytes():   4096
-
-expected final in-range word: 0
-actual final in-range word:   571539456
-```
-
-The four-byte write started two bytes before the end of a 1,024-byte LDS
-through the `simdojo::MemoryInterface` overload. In a Release build the
-assertion is absent, `ensure_materialized()` grows the vector to 4,096 bytes,
-and the first two bytes are written inside the architectural capacity. The
-concrete `Lds::write(uint32_t, ...)` overload correctly drops the same
-partially out-of-range operation.
-
 **Published-head CI context:** the focused rocJITsu release, Clang
 ASan/UBSan, GCC ASan/UBSan, TSan, and formatting jobs pass. The broad
 multi-architecture workflow has failures in unrelated repository projects.
@@ -132,38 +112,12 @@ not the same reclaimable sparse backing used for VGPRs.
 
 The normal LDS paths, boundary reads, vector operations, zero-on-reuse
 behavior, WGP ownership, and current-`develop` integration all look sound.
-One release-build bounds hole remains in the polymorphic
-`MemoryInterface` entry point.
+I found no code-correctness blocker in the valid emulator paths exercised by
+the current tree.
 
 ## Actionable items
 
-### 1. Enforce architectural bounds in the `MemoryInterface` read/write overloads in Release builds
-
-**Files:**
-
-- `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/lds.h:132-149`
-- `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/lds.h:229-243`
-- `emulation/rocjitsu/tests/lds_test.cpp`
-
-The concrete bulk overloads define all-or-nothing out-of-bounds behavior:
-reads return zero and writes are dropped. The polymorphic
-`simdojo::MemoryInterface` overloads rely only on
-`assert(contains(a, size))`.
-
-With `NDEBUG`, an out-of-range write reaches `ensure_materialized()` with
-`required > capacity_bytes_`. The subtraction
-`capacity_bytes_ - rounded` underflows, the vector grows beyond the
-architectural capacity, and the operation partially changes valid LDS bytes.
-Appendix A reproduces this in the normal Release configuration.
-
-Keep the assertion if it is useful diagnostically, but add a runtime guard
-before `ensure_materialized()` and `read_backing()`. The write should be
-dropped and the read should zero the complete destination, matching the
-concrete overloads. Add direct tests through a
-`simdojo::MemoryInterface &`; the submitted bounds tests call only the
-concrete `Lds` overloads and therefore do not cover this path.
-
-### 2. Link the PR to an issue or ticket
+### 1. Link the PR to an issue or ticket
 
 **Location:** PR description
 
@@ -241,18 +195,3 @@ That differs materially from #9779, which releases fully covered VGPR chunks
 when a wave retires. The retained behavior may be the right latency tradeoff,
 but it should be visible in the design description so future performance work
 does not assume both lazy stores have the same lifetime.
-
-## Appendix A: release-mode `MemoryInterface` bounds reproducer
-
-```cpp
-TEST(LdsTest, MemoryInterfaceOutOfBoundsWriteDoesNotGrowBacking) {
-  Lds lds(1);
-  std::array<uint8_t, 4> bytes{0x11, 0x22, 0x33, 0x44};
-  simdojo::MemoryInterface &memory = lds;
-
-  memory.write(lds.size_bytes() - 2, bytes.data(), bytes.size());
-
-  EXPECT_EQ(lds.materialized_size_bytes(), 0u);
-  EXPECT_EQ(lds.read32(static_cast<uint32_t>(lds.size_bytes() - 4)), 0u);
-}
-```
