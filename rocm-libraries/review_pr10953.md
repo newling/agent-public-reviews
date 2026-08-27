@@ -2,13 +2,17 @@
 
 **PR:** [#10953 — `test(hipblaslt): stop characterization tests from reading library/src tuning data`](https://github.com/ROCm/rocm-libraries/pull/10953)
 
-**Scope:** submitted head `708b6b3f7ee`
+**Scope:** updated head `7104e12d523`
+
+**Review mode:** independent updated-head refresh; existing PR discussion was
+not used as review evidence.
 
 **Assessment:** REQUEST CHANGES
 
-**Risk:** 2/5 — this is test-only isolation work, and the vendored fixtures
-reproduce the intended kernels, but the new standing regression guard does not
-actually implement the path-construction contract it claims.
+**Risk:** 2/5 — this is test-only isolation work, but the updated head fails its
+own focused snapshots, carries unrelated catalog changes from conflict
+resolution, and adds a standing regression guard that does not implement the
+path-construction contract it claims.
 
 ## Tests
 
@@ -21,22 +25,37 @@ From `projects/hipblaslt/tensilelite`, after installing the repository-local
   Tensile/Tests/unit/characterization/_codegen/test_emit_bigfiles_char.py
 ```
 
-Result: 11 passed, 0 failed, 0 skipped, and 0 errored in 50.97 seconds
-(51.64 seconds wall time). All 10 existing snapshots passed without an update.
+Result: 8 passed, 3 failed, 0 skipped, and 0 errored in 55.30 seconds
+(56.16 seconds wall time). The failing snapshot cases are:
 
-I also parsed each vendored fixture and its corresponding production tuning
-file with the repository's `solutions_from_logic()` helper, generated kernel
-objects with `generateKernelObjectsFromSolutions()`, sorted their
+- `equality_gfx950_HSS_big`;
+- `gfx950_origami_MX`; and
+- `gfx1201_I8II`.
+
+Every kernel still emitted with error code zero; the failures are basename
+snapshot mismatches.
+
+I parsed each vendored fixture and its corresponding production tuning file
+with the repository's `solutions_from_logic()` helper, generated kernel objects
+with `generateKernelObjectsFromSolutions()`, sorted their
 `getKernelFileBase(False, kernel)` values, and checked:
 
 ```python
 fixture_names == production_names[:cap]
 ```
 
-All 10 comparisons passed. The production files contained between 3 and 212
-kernels; the fixtures contained exactly the capped prefix (3, 4, or 6 kernels,
-as applicable). A separate YAML structural probe found contiguous remapped
-`SolutionIndex` values and no matching-table references outside those values.
+Seven comparisons passed. The same three cases that fail their snapshots no
+longer equal the current production files' capped prefixes:
+
+```text
+equality_gfx950_HSS_big: exact_prefix=False
+gfx950_origami_MX: exact_prefix=False
+gfx1201_I8II: exact_prefix=False
+```
+
+The comparison probe completed in 33.59 seconds. A separate YAML structural
+probe found contiguous remapped `SolutionIndex` values and no matching-table
+references outside those values.
 
 The focused counterexample probe in Appendix A completed in 0.09 seconds and
 produced:
@@ -51,12 +70,10 @@ reconstructs all three forbidden production-tree segments.
 
 `git diff --check` passed for the PR diff.
 
-At review time on August 26, 2026, the directly relevant public checks are
-green: pre-commit, TensileLite coverage, the TensileLite unit/codecov job, the
-gfx942 TensileLite test shard, and hipBLASLt precheckin/static analysis all
-pass. The overall PR is not green: aggregate Math CI, preliminary hipBLASLt,
-project Codecov, and several release jobs report failure. The PR is also
-currently merge-conflicted with `develop`.
+At review time on August 26, 2026, pre-commit passes on the updated head, but
+TensileLite coverage and the Math CI TensileLite unit/codecov status fail.
+Several broader jobs are still running. GitHub now reports the branch as
+mergeable.
 
 ## Summary
 
@@ -65,9 +82,10 @@ production tuning files. It adds ten trimmed YAML fixtures containing the
 solutions needed for the existing capped-and-sorted kernel sets, points the
 test at those local fixtures, and removes the missing-product-tree skip.
 
-The fixture portion works as intended at the submitted head. Each fixture
-parses and emits successfully, preserves the existing golden, and reproduces
-the exact sorted kernel prefix from its production source.
+Each fixture still parses and emits successfully. However, after current
+`develop` was merged into the branch, three fixtures no longer reproduce the
+corresponding current capped kernel set and no longer match the inherited
+snapshots.
 
 The PR also adds an AST-based policy test intended to prevent any
 characterization test from reconstructing the old `library/src/...` path. That
@@ -77,7 +95,27 @@ in a path. That mismatch creates both false positives and false negatives.
 
 ## Actionable items
 
-1. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/_codegen/test_no_library_src_dependency_char.py:35-59,62-84`
+1. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/_codegen/test_emit_bigfiles_char.py:47-54`,
+   `_codegen/__snapshots__/test_emit_bigfiles_char.ambr:30-57,86-113,158-185`,
+   and the corresponding three files under `_codegen/data/bigfiles/` — update
+   the fixtures for the merged base and restore a passing focused test.**
+
+   The updated head fails `equality_gfx950_HSS_big`, `gfx950_origami_MX`, and
+   `gfx1201_I8II`. All three still emit successfully, but their generated
+   basenames differ from the snapshots inherited from current `develop`.
+   Independently comparing each fixture with its current production source
+   shows that these are also exactly the three fixtures that no longer
+   reproduce the source file's sorted `[:cap]` kernel prefix.
+
+   Regenerate these trimmed fixtures from the current production inputs,
+   including solution-index and matching-table remapping, and confirm that the
+   resulting fixture output matches the existing base snapshots. If retaining
+   the older fixture configurations is intentional instead, update and review
+   only the three affected snapshot nodes and document why the PR now changes
+   behavior relative to its base. Do not merge the current revision with its
+   directly targeted test failing.
+
+2. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/_codegen/test_no_library_src_dependency_char.py:35-59,62-84`
    — make the guard recognize product-tree paths rather than unrelated string
    tokens.**
 
@@ -101,22 +139,23 @@ in a path. That mismatch creates both false positives and false negatives.
    concatenated variants, harmless product/tool names, docstrings, and
    unrelated `library` paths.
 
-2. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/DECISIONS.md:475-485`
-   — rebase onto current `develop` and resolve the existing catalog conflict
-   before this can merge.**
+3. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/DECISIONS.md:281-309`
+   — preserve current `develop`'s D20 cleanup instead of restoring the removed
+   historical prose during conflict resolution.**
 
-   A three-way merge against current `develop` reports a content conflict in
-   this file. The base has accumulated additional characterization decisions,
-   so resolving this by accepting either complete side would lose entries.
-   Rebase, preserve the current catalog, append D21 at the next valid position,
-   and rerun the focused snapshot tests on the rebased code. The current
-   `develop` bigfile snapshot has changed since this PR's merge base, so the
-   unchanged-golden claim must be revalidated after the rebase rather than
-   assumed from the submitted head.
+   Relative to current `develop`, the merge resolution expands D20 from its
+   canonical one-sentence summary back into the older multi-paragraph version,
+   including a stale note about tests that still needed confirmation. That
+   cleanup was already merged as part of the ADR/catalog split and is unrelated
+   to D21.
+
+   Restore D20 exactly as it appears on current `develop`, then append only the
+   new D21 entry. This keeps the PR scoped to its own decision and avoids
+   reversing an already-merged documentation cleanup.
 
 ## Suggestions
 
-1. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/DECISIONS.md:481-485`
+1. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/DECISIONS.md:305-309`
    — remove the stale “Open item.”**
 
    It says a full ADR is probably unnecessary and should be added only after
@@ -139,9 +178,11 @@ in a path. That mismatch creates both false positives and false negatives.
 ## Commentary
 
 Decoupling characterization tests from mutable production tuning data is the
-right boundary. The local emit run and independent name comparison support the
-fixture selection: I did not find a mismatch, stale solution reference, or
-snapshot change in the submitted revision.
+right boundary. At the originally reviewed revision, all fixtures matched both
+their production source prefixes and the snapshots. The merge with current
+`develop` invalidated that result for three cases, so the fixture extraction
+needs to be refreshed before the intended boundary is established on the
+actual merge candidate.
 
 The remaining concern is precision of the permanent policy check. A guard
 against test-data coupling should itself be resistant to ordinary refactors and
