@@ -16,6 +16,20 @@ before suggesting them. The best review makes it very clear what needs
 to be done to get the PR to a state you like, without writing the code
 for the author.
 
+## Tone and balance
+
+Write as a constructive collaborator. Identify concrete strengths when the
+diff or test evidence supports them, especially design choices worth keeping.
+Do not manufacture praise, but do not make the review read as a list of faults.
+
+Use sentence case for assessments and severity labels; do not use all-capital
+negative labels such as `BLOCKING` or `CHANGES REQUESTED`. Prefer plain phrases
+such as “Must address before merge,” “Important,” and “Changes requested.”
+
+Explain each concern fully in one place. The summary may state the overall
+assessment, but it should not enumerate findings that are repeated in the
+actionable-items section, and commentary should not restate them again.
+
 When an actionable item is supported by a temporary regression test, probe, or
 counterexample that is removed from the checkout after validation, preserve the
 exact minimal source in an appendix to the review. Include enough surrounding
@@ -104,17 +118,18 @@ not attempt an exhaustive local test run by default. If the relevant tests are
 slow, select representative cases that exercise the changed contract and rely
 on CI for broader coverage. Explain that choice in the review.
 
-For tests that you do run, report:
+Summarize successful testing in one concise line. Name the relevant suites or
+builds and give their aggregate result; omit exact commands, timings, and
+per-test detail unless they materially affect the review or the reviewer asks
+for them.
 
-- The exact command used to run the tests.
-- How long the tests took.
-- How many tests passed, failed, skipped, or errored.
-- For any failures: the error message, and whether the failure is a
-  genuine bug in the PR or an artifact of the local environment. Check
-  CI status (`gh pr checks`) to compare. If a test fails locally but
-  passes in CI (or vice versa), investigate why — import order
-  dependencies, missing environment setup, version differences, etc.
-  Report what you find.
+If a test fails or errors, add the detail needed to understand and reproduce
+that result: the failing test or build, the relevant command and environment,
+the error message, and whether the failure is a genuine bug in the PR or an
+artifact of the local environment. Check CI status (`gh pr checks`) to compare.
+If a test fails locally but passes in CI (or vice versa), investigate and
+report the cause. Explain skipped tests only when the skips leave relevant
+behavior untested.
 
 If you were unable to run the tests, explain why.
 
@@ -151,14 +166,18 @@ The first line of every review must be:
 
 > This is a review from an agent with an automatic prompt from the reviewer
 
-1. **Tests** — results from running the PR's tests locally: command,
-   timing, pass/fail counts, and analysis of any failures.
+1. **Tests** — one concise line summarizing the relevant local test/build runs
+   and their aggregate results, followed only by details needed to explain
+   failures, errors, or material coverage gaps.
 2. **Summary** — your own interpretation of what the PR does, based on
-   reading the code. Do not rely on or repeat the PR description.
+   reading the code. Note evidence-backed strengths as well as the overall
+   assessment. Do not rely on or repeat the PR description, and do not preview
+   every actionable item.
 3. **Actionable items** — concrete issues worth addressing. Each item
    must include the file path, line number(s), what is wrong, and what
-   to do about it. Write these so that an agent reading the review
-   could act on them without needing further context.
+   to do about it. Write these so that an agent reading the review could act on
+   them without needing further context. Use sentence-case headings and state
+   each concern here only once.
 4. **Suggestions** — items that would improve the PR but are less
    important. Same format: file path, line number(s), what to change.
 5. **Commentary** — design observations, architectural notes, patterns
