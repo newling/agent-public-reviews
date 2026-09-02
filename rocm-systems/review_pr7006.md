@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#7006
+**PR reviewed:** [ROCm/rocm-systems#7006](https://github.com/ROCm/rocm-systems/pull/7006)
 **Commit reviewed:** `74e5f93166` (`fix: adress pr comments`)
 
 **PR metadata:** public PR against public `ROCm/rocm-systems`, base `develop`,

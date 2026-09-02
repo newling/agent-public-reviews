@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#6962
+**PR reviewed:** [ROCm/rocm-systems#6962](https://github.com/ROCm/rocm-systems/pull/6962)
 **Commit reviewed:** `782b5a436b` (`fix(rocjitsu): resolve rebase integration`)
 **Previously reviewed head used for comparison:** `7b70cba829`
 

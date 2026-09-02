@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#6962
+**PR reviewed:** [ROCm/rocm-systems#6962](https://github.com/ROCm/rocm-systems/pull/6962)
 
 **Commit reviewed:** `b043ffda82f5` (`fix(rocjitsu): defer cluster barrier
 completion`).

@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#10030
+**PR reviewed:** [ROCm/rocm-systems#10030](https://github.com/ROCm/rocm-systems/pull/10030)
 
 **Revision reviewed:** rebased candidate `ddf9937351d`, based directly on
 `origin/develop` commit `c1dba564e7e` after the merged gfx1250 wave-ABI

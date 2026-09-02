@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8594
+**PR reviewed:** [ROCm/rocm-systems#8594](https://github.com/ROCm/rocm-systems/pull/8594)
 
 **Commit reviewed:** `070723e0c4` (`perf(rocjitsu): Optimize MFMA/WMMA execution`).
 

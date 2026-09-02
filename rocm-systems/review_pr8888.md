@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8888
+**PR reviewed:** [ROCm/rocm-systems#8888](https://github.com/ROCm/rocm-systems/pull/8888)
 
 **Review mode:** follow-up review. I read the existing review summaries,
 inline threads, and PR discussion, then independently checked each current

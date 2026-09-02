@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9328
+**PR reviewed:** [ROCm/rocm-systems#9328](https://github.com/ROCm/rocm-systems/pull/9328)
 
 **Commit reviewed:** `f28881503ee8` (`parametrize vgpr granule by wave32 or
 wave64`), the current PR head.

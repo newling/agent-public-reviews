@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8703
+**PR reviewed:** [ROCm/rocm-systems#8703](https://github.com/ROCm/rocm-systems/pull/8703)
 
 **Commit reviewed:** `663b0e94a578` (`fix(rocjitsu): close GPU concurrency gaps`),
 the fifth commit in the PR's five-commit stack.

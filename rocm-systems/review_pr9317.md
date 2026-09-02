@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9317
+**PR reviewed:** [ROCm/rocm-systems#9317](https://github.com/ROCm/rocm-systems/pull/9317)
 
 **Revision reviewed:** local rebased head `b707c0b54eab`, a six-commit stack
 based directly on `origin/develop@625071369a`. The local rebased head has not

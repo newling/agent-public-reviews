@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9370
+**PR reviewed:** [ROCm/rocm-systems#9370](https://github.com/ROCm/rocm-systems/pull/9370)
 
 **Commit reviewed:** `d2d5031a32d8` (current PR head). The intermediate
 Simdojo change and its immediate revert are net-zero; the final diff changes

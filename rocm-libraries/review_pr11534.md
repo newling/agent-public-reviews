@@ -1,5 +1,7 @@
 This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-libraries#11534](https://github.com/ROCm/rocm-libraries/pull/11534)
+
 ## Tests
 
 Parsed matched pre- and post-conversion gfx942 GridBased, FreeSize, Equality, and StreamK logic files with Tensile's production `CustomYamlLoader`; all eight parses succeeded.

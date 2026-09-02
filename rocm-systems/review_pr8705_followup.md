@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8705
+**PR reviewed:** [ROCm/rocm-systems#8705](https://github.com/ROCm/rocm-systems/pull/8705)
 
 **Commit reviewed:** `6cece9090054` (`feat(rocjitsu): partition execution by
 XCD`).

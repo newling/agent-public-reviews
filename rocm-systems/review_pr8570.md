@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8570
+**PR reviewed:** [ROCm/rocm-systems#8570](https://github.com/ROCm/rocm-systems/pull/8570)
 **Commit reviewed:** `93947b597cc85999f5de22d7f3d1e55442a935c9` (`rocjitsu: fix RDNA dispatch work-item state`)
 
 **Public/repo status:** the repository is public, and the PR head is in the same public repository.

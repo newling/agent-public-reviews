@@ -1,5 +1,7 @@
 This is a follow-up note after checking the live PR conversation for PR #8583.
 
+**PR reviewed:** [ROCm/rocm-systems#8583](https://github.com/ROCm/rocm-systems/pull/8583)
+
 ## Posted comment
 
 The review link comment is visible on the PR. One small wording note: the PR's

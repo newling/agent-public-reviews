@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8417
+**PR reviewed:** [ROCm/rocm-systems#8417](https://github.com/ROCm/rocm-systems/pull/8417)
 
 **Commit reviewed:** `4ccffa76d9` (`chore(rocjitsu): refresh generated AMDGPU ISA files`), with implementation commit `4cbbfc035b` underneath it.
 

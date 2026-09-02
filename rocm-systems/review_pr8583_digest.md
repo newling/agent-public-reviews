@@ -1,5 +1,7 @@
 This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-systems#8583](https://github.com/ROCm/rocm-systems/pull/8583)
+
 ## Summary
 
 PR #8583 is the right kind of hardening for daemon-mode `SimulatedKfd`: it adds

@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9470
+**PR reviewed:** [ROCm/rocm-systems#9470](https://github.com/ROCm/rocm-systems/pull/9470)
 
 **Commit reviewed:** `b769b2f6dd63`, the current PR head.
 

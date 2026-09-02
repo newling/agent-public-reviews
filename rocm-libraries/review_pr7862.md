@@ -1,5 +1,7 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-libraries#7862](https://github.com/ROCm/rocm-libraries/pull/7862)
+
 ## Tests
 
 The PR adds no tests. There are no test files in the diff.

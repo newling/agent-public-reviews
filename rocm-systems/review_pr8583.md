@@ -2,7 +2,7 @@
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8583
+**PR reviewed:** [ROCm/rocm-systems#8583](https://github.com/ROCm/rocm-systems/pull/8583)
 
 **Commit reviewed:** `b9b71492f848973a0ffb281ba2166e9a0dd88cbf` (`fix(rocjitsu): Harden SimulatedKfd concurrency for daemon mode`)
 

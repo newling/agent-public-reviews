@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#10030
+**PR reviewed:** [ROCm/rocm-systems#10030](https://github.com/ROCm/rocm-systems/pull/10030)
 
 **Commit reviewed:** `b966170b7522` (`refactor(rocjitsu): unify explicit-wave
 register observation`), the current PR head.

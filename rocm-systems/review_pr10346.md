@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#10346
+**PR reviewed:** [ROCm/rocm-systems#10346](https://github.com/ROCm/rocm-systems/pull/10346)
 
 **Revision reviewed:** published head `c2e885bfd50a`, one commit based on
 merge-base `a659172a31d4`. The current `develop` head observed during review was

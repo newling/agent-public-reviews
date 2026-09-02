@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8177
+**PR reviewed:** [ROCm/rocm-systems#8177](https://github.com/ROCm/rocm-systems/pull/8177)
 
 **Commit reviewed:** `ce48044c9cb3f05edbf03fe22c361b463ba6665e` (`test(rocjitsu): validate decoded mnemonics`)
 

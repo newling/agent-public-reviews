@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8499
+**PR reviewed:** [ROCm/rocm-systems#8499](https://github.com/ROCm/rocm-systems/pull/8499)
 **Commit reviewed:** `86cc4f3d10c56e6edd3370ac13dc5949cac983f2` (`rocjitsu: fix RDNA WGP and wave32 EXEC semantics`)
 
 **Public/repo status:** the repository is public, and the PR head is in the same public repository.

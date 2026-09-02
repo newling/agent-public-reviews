@@ -1,6 +1,6 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
-**PR:** #9363 — `ci(hipblaslt): explore CPU rocjitsu race checks for gfx942/gfx950/gfx1151`
+**PR:** [ROCm/rocm-libraries#9363](https://github.com/ROCm/rocm-libraries/pull/9363) — `ci(hipblaslt): explore CPU rocjitsu race checks for gfx942/gfx950/gfx1151`
 **Base:** develop
 **Files:** 3 changed (+629/-3)
 

@@ -1,6 +1,6 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
-**PR:** #8699 - `fix : [tensilelite] Add ASAN and TSAN support for debugging`
+**PR:** [ROCm/rocm-libraries#8699](https://github.com/ROCm/rocm-libraries/pull/8699) - `fix : [tensilelite] Add ASAN and TSAN support for debugging`
 **Base:** develop
 **Files:** 2 changed (+56/-0)
 

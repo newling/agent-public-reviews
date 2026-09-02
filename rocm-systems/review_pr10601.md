@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#10601
+**PR reviewed:** [ROCm/rocm-systems#10601](https://github.com/ROCm/rocm-systems/pull/10601)
 
 **Revision reviewed:** `c43f78866691` (`[rocjitsu] Materialize LDS backing on
 demand`), one commit based on `e36e73e19cac`.

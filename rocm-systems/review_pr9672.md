@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9672
+**PR reviewed:** [ROCm/rocm-systems#9672](https://github.com/ROCm/rocm-systems/pull/9672)
 
 **Commit reviewed:** `ae530b2824b7` (`test(rocjitsu): preserve race suite
 assertion parity`), the current PR head.

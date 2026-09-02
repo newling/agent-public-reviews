@@ -2,7 +2,7 @@
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8232
+**PR reviewed:** [ROCm/rocm-systems#8232](https://github.com/ROCm/rocm-systems/pull/8232)
 **Commit reviewed:** `d2671c016c` (`fix(rocjitsu): Harden interposer concurrency`)
 
 Local validation:

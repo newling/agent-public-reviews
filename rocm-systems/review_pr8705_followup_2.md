@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8705
+**PR reviewed:** [ROCm/rocm-systems#8705](https://github.com/ROCm/rocm-systems/pull/8705)
 
 **Commit reviewed:** `a487f322f99f` (`fix(rocjitsu): tighten XCD partition
 setup`), the current PR head.

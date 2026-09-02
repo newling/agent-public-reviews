@@ -1,5 +1,7 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-libraries#10696](https://github.com/ROCm/rocm-libraries/pull/10696)
+
 **Scope:** mutation stack #10685–#10693, #10695, and #10696; separately based #8788  
 **Assessment:** REQUEST CHANGES  
 **Risk:** 4/5 — the stack's core helper temporarily changes tracked source, and

@@ -1,5 +1,7 @@
 This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-systems#7383](https://github.com/ROCm/rocm-systems/pull/7383)
+
 ## Abridged Review: ROCm/rocm-systems#7383
 
 **Commit reviewed:** `62ae2e2502` (`rocjitsu: kmd emulation + hsa hooks`)

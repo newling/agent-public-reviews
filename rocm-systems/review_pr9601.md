@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9601
+**PR reviewed:** [ROCm/rocm-systems#9601](https://github.com/ROCm/rocm-systems/pull/9601)
 
 **Commit reviewed:** `ad4396a696a1` (`[rocjitsu] Model synchronous DRM
 timelines`), the current PR head.

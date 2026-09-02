@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9578
+**PR reviewed:** [ROCm/rocm-systems#9578](https://github.com/ROCm/rocm-systems/pull/9578)
 
 **Revision reviewed:** published head `a2ef19ecd42`, based directly on
 `origin/develop@9dcf7d5f244`.

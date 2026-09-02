@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9396
+**PR reviewed:** [ROCm/rocm-systems#9396](https://github.com/ROCm/rocm-systems/pull/9396)
 
 **Commit reviewed:** `1ba4b466d9ea` (`addressing review comments`), the current
 third commit in the PR stack.

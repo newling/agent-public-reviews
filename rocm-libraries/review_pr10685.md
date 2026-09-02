@@ -1,5 +1,7 @@
 > This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-libraries#10685](https://github.com/ROCm/rocm-libraries/pull/10685)
+
 **Scope:** the complete mutation-testing stack rooted at #10685 through the
 current #10858 head  
 **Assessment:** REQUEST CHANGES  

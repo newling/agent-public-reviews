@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8075
+**PR reviewed:** [ROCm/rocm-systems#8075](https://github.com/ROCm/rocm-systems/pull/8075)
 **Commit reviewed:** `d7961030920` (`Merge branch 'develop' into mfma-plugin-read-observation`)
 
 **Build command:**

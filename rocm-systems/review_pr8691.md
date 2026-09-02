@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8691
+**PR reviewed:** [ROCm/rocm-systems#8691](https://github.com/ROCm/rocm-systems/pull/8691)
 
 **Commit reviewed:** `d4b81d234aff` (`rocjitsu: preserve non-kernel AQL barrier ordering`).
 

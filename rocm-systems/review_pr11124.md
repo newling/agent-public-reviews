@@ -1,5 +1,7 @@
 This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-systems#11124](https://github.com/ROCm/rocm-systems/pull/11124)
+
 ## Tests
 
 The `rocjitsu_tests` target built successfully; all 9 `Gfx1251F64WmmaExecutionTest.*` cases and 3 related WMMA register-observation tests passed. Changed-file pre-commit hooks and `git diff --check` passed. The focused Python tests could not be collected because `cgen` is absent from the review environment; no dependency was installed.

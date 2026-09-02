@@ -1,5 +1,7 @@
 This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-systems#8703](https://github.com/ROCm/rocm-systems/pull/8703)
+
 # Compendium review: ROCm/rocm-systems#8703
 
 **Commit reviewed:** `3a0f2c45118a` (`fix(rocjitsu): harden L2 atomic

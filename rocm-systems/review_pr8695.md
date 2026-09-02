@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8695
+**PR reviewed:** [ROCm/rocm-systems#8695](https://github.com/ROCm/rocm-systems/pull/8695)
 
 **Commit reviewed:** `b5a9c94de3` (`Keep DRM layout checks warning-clean with Clang`).
 

@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8769
+**PR reviewed:** [ROCm/rocm-systems#8769](https://github.com/ROCm/rocm-systems/pull/8769)
 
 **Commit reviewed:** `e9ff9606a790` (`fix(rocjitsu): report unsupported AQL
 packet errors`).

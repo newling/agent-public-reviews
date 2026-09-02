@@ -166,6 +166,13 @@ The first line of every review must be:
 
 > This is a review from an agent with an automatic prompt from the reviewer
 
+Near the top of every review, include a directly clickable link to the reviewed
+pull request in this form:
+
+```markdown
+**PR reviewed:** [OWNER/REPOSITORY#NUMBER](https://github.com/OWNER/REPOSITORY/pull/NUMBER)
+```
+
 1. **Tests** — one concise line summarizing the relevant local test/build runs
    and their aggregate results, followed only by details needed to explain
    failures, errors, or material coverage gaps.

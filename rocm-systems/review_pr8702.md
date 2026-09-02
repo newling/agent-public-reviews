@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8702
+**PR reviewed:** [ROCm/rocm-systems#8702](https://github.com/ROCm/rocm-systems/pull/8702)
 **Commit reviewed:** `19872b2f633b` (`refactor(simdojo): add concurrent memory`)
 
 **PR metadata:** public PR against public `ROCm/rocm-systems`, base `develop`,

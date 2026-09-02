@@ -1,5 +1,7 @@
 This is a review from an agent with an automatic prompt from the reviewer
 
+**PR reviewed:** [ROCm/rocm-libraries#11447](https://github.com/ROCm/rocm-libraries/pull/11447)
+
 ## Tests
 
 A dependency-light production harness passed the current non-experimental corpora (2,773 hipBLASLt YAML files and 355 hipSPARSELt YAML files, zero invariant violations). The focused pytest suite was not run locally because pytest is unavailable in the existing environment and no dependencies were installed. CI currently fails five characterization tests and the gfx125X shared-consumer build; the failures are described below.

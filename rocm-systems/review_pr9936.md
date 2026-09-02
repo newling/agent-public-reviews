@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9936
+**PR reviewed:** [ROCm/rocm-systems#9936](https://github.com/ROCm/rocm-systems/pull/9936)
 
 **Revision reviewed:** local rebased candidate `7f9982d0e553`, a three-commit
 stack based on `origin/develop@4afd2ec347`. The candidate has not been

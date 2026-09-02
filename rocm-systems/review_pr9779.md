@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#9779
+**PR reviewed:** [ROCm/rocm-systems#9779](https://github.com/ROCm/rocm-systems/pull/9779)
 
 **Commit reviewed:** `8e0a2596ba52` (`Lazy vgpr allocation system`), the
 current PR head.

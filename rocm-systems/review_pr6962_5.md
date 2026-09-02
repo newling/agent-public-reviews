@@ -2,6 +2,14 @@
 
 ## Tests
 
+**PR reviewed:** [ROCm/rocm-systems#6962](https://github.com/ROCm/rocm-systems/pull/6962) — `feat(rocjitsu): add functional CU dispatch pool`
+
+**Commit reviewed:** `61042636cf9bdb4c94849c6515ab8ea90cdc8883` (`fix(rocjitsu): defer cluster barrier completion`)
+
+**Review mode:** Follow-up design and implementation review after the PR's rebase onto current `develop` and integration with XCD fan-out.
+
+**PR metadata:** Public, open, non-draft PR against public `ROCm/rocm-systems`; base `develop`, head `<pr-head-ref>`.
+
 Clang 23 Release build passed; the complete `rocjitsu_tests` binary passed 3,800 tests with 2 expected skips and 1 disabled test, the focused pool/fan-out selection passed 55/55, the GCC 13 ThreadSanitizer selection passed 24/24 with no report, a temporary eight-partition plus eight-thread-pool fan-out regression passed 1/1, and branch-diff pre-commit plus `git diff --check` passed.
 
 Three temporary counterexamples failed against the submitted head and were removed after validation. A two-CU/one-slot dispatch with three one-instruction workgroups left the third workgroup undispatched and its completion signal unchanged. A debugger-paused pool-driven wave kept generating continuation events. A direct one-thread `CpuDispatchPool::run()` stopped at the first failing task while the parallel path completed the rest of the batch before rethrowing. Exact regressions are in the appendix.

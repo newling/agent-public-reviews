@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8703
+**PR reviewed:** [ROCm/rocm-systems#8703](https://github.com/ROCm/rocm-systems/pull/8703)
 
 **Commit reviewed:** `7b3402ff2016` (`fix(rocjitsu): preserve invalidated
 memory state`), the seventh commit in the current stack.

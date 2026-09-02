@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#8798
+**PR reviewed:** [ROCm/rocm-systems#8798](https://github.com/ROCm/rocm-systems/pull/8798)
 
 **Commit reviewed:** `24c80ef9c9fa` (`test(rocjitsu): mark packed destinations explicitly`),
 the second commit in the PR's two-commit stack.

@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 ## Tests
 
-**PR reviewed:** ROCm/rocm-systems#7470
+**PR reviewed:** [ROCm/rocm-systems#7470](https://github.com/ROCm/rocm-systems/pull/7470)
 
 **Commit reviewed:** `636b11a22c0b` (`fixed exec state tracking
 distinguishing between exec_lo vs exec_hi`), the third commit in the current
