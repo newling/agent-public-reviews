@@ -2,6 +2,8 @@
 
 **PR reviewed:** [ROCm/rocm-libraries#7235](https://github.com/ROCm/rocm-libraries/pull/7235)
 
+**Proposed fixes:** [ROCm/rocm-libraries#11634](https://github.com/ROCm/rocm-libraries/pull/11634) is a draft follow-up targeting this PR's branch. It implements the backend-propagation, CUDAToolkit usage-requirement, shared-Tensile version-handoff, and version-test fixes described below.
+
 **Assessment:** Changes requested
 
 **Scope:** head `793d9cffdaa`
