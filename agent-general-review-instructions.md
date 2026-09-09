@@ -22,13 +22,15 @@ Write as a constructive collaborator. Identify concrete strengths when the
 diff or test evidence supports them, especially design choices worth keeping.
 Do not manufacture praise, but do not make the review read as a list of faults.
 
-Use sentence case for assessments and severity labels; do not use all-capital
-negative labels such as `BLOCKING` or `CHANGES REQUESTED`. Prefer plain phrases
-such as “Must address before merge,” “Important,” and “Changes requested.”
+Use direct, descriptive headings for findings. Do not prefix findings with
+workflow, severity, or merge-state labels. Explain the concrete consequence
+and the needed change, and leave the merge-state decision to the reviewer. Do
+not add a standalone approval/request-changes assessment unless the reviewer
+asks for one.
 
-Explain each concern fully in one place. The summary may state the overall
-assessment, but it should not enumerate findings that are repeated in the
-actionable-items section, and commentary should not restate them again.
+Explain each concern fully in one place. The summary may state the bottom line
+in ordinary prose, but it should not enumerate findings that are repeated in
+the actionable-items section, and commentary should not restate them again.
 
 When an actionable item is supported by a temporary regression test, probe, or
 counterexample that is removed from the checkout after validation, preserve the
@@ -177,9 +179,9 @@ pull request in this form:
    and their aggregate results, followed only by details needed to explain
    failures, errors, or material coverage gaps.
 2. **Summary** — your own interpretation of what the PR does, based on
-   reading the code. Note evidence-backed strengths as well as the overall
-   assessment. Do not rely on or repeat the PR description, and do not preview
-   every actionable item.
+   reading the code. Note evidence-backed strengths and give a concise bottom
+   line when useful. Do not rely on or repeat the PR description, and do not
+   preview every actionable item.
 3. **Actionable items** — concrete issues worth addressing. Each item
    must include the file path, line number(s), what is wrong, and what
    to do about it. Write these so that an agent reading the review could act on
