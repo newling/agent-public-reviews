@@ -52,3 +52,13 @@ int main()
 ```
 
 In `GetAMDSMIIndex()`, that `0` is returned immediately and is used to index the processor vector for the current, first socket.
+
+## Appendix: proposed identity-based fallback
+
+AMD-SMI exposes `amdsmi_get_gpu_enumeration_info()` for each processor handle. Its result contains the HIP enumeration ID and HIP UUID, so the fallback can identify the requested HIP device without assuming that AMD-SMI and HIP use the same global ordering.
+
+When `amdsmi_get_gpu_bdf_id()` returns `AMDSMI_STATUS_NOT_SUPPORTED`, query enumeration information for that same handle. A matching `hip_id` should select the current handle; a nonmatching ID should continue through the remaining handles and sockets rather than returning an ordinal from the current socket. Preserve the existing throwing behavior for unexpected AMD-SMI errors.
+
+If neither BDF nor enumeration information can establish the selected device, leave the benchmark running but mark monitoring unavailable for that run and issue one clear warning. The monitor's enabled and efficiency-report predicates should then observe that state, so reporting does not emit zero-frequency or infinite-efficiency values. Returning an `amdsmi_processor_handle` (or a socket/index pair) from discovery rather than an index alone would make that ownership explicit.
+
+The focused tests should cover an unavailable BDF on socket 0 followed by a HIP-ID match on socket 1, an unavailable BDF with a nonmatching HIP ID that continues searching, and the no-identity case that disables telemetry without throwing.
