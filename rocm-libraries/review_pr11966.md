@@ -4,6 +4,8 @@
 
 **Dependent PRs reviewed:** [ROCm/rocm-libraries#11967](https://github.com/ROCm/rocm-libraries/pull/11967), [ROCm/rocm-libraries#11968](https://github.com/ROCm/rocm-libraries/pull/11968), [ROCm/rocm-libraries#11969](https://github.com/ROCm/rocm-libraries/pull/11969), and [ROCm/rocm-libraries#11970](https://github.com/ROCm/rocm-libraries/pull/11970)
 
+**Follow-up draft:** [ROCm/rocm-libraries#12004](https://github.com/ROCm/rocm-libraries/pull/12004) proposes one commit for each actionable item. The direct commit links are recorded with the corresponding findings below.
+
 ## Tests
 
 Focused local selections covering the contract additions, crossover and ratchet logic, rejection harvests, and every new gfx942/gfx950 test in the terminal PR passed (528 passed, 2 skipped); all five per-PR diffs also pass `git diff --check`. The local compiler does not advertise the required gfx1250 ISA capabilities, so I used the public coverage job for those nodes.
@@ -28,11 +30,15 @@ The terminal layer is not yet a trustworthy characterization net, however. Most 
 
    Add a narrow, canonical semantic projection per case—for example the relevant opcode sequence, instruction count/order, derived state, or rejection diagnostic. A full assembly snapshot is unnecessary, but `{basename, err}` should be treated as an emission/identity smoke test rather than the behavioral golden. The zero-survivor cases such as `test_s08_assignderivedparameters_enablema_char.py:45-61` also need to assert the intended rejection reason or validator boundary; snapshotting the integer `0` merely repeats the preceding assertion and would pass if an unrelated earlier reject removed every solution.
 
+   **Proposed follow-up:** [2e0e03bff219bf33cf076eef5bf44b3e21a08602](https://github.com/ROCm/rocm-libraries/commit/2e0e03bff219bf33cf076eef5bf44b3e21a08602) in [#12004](https://github.com/ROCm/rocm-libraries/pull/12004) adds an opcode-set projection to the saved result and verifies that the conversion-to-no-op counterexample changes the characterization result.
+
 2. **`projects/hipblaslt/tensilelite/Tensile/Components/LocalRead.py:622-631` — reject the unsupported MX layout during solution derivation instead of admitting a valid solution that aborts code generation.**
 
    #11969 converts the accidental divide-by-zero into a descriptive generic exception, but `test_mx_umlds0_char.py:54-66` confirms that the configuration remains valid through `_generateForkedSolutions` and then throws from `processKernelSource`. In a normal multi-solution generation this exception aborts the generation operation rather than filtering the unsupported candidate through the existing `reject(state, ...)` mechanism.
 
    Add the layout constraint to `Solution.assignDerivedParameters` or the relevant MX validator, with a focused test that the candidate is invalid and emits the intended rejection reason. Keeping a defensive assertion in `localReadMX` is reasonable, but it should be unreachable for an ordinarily derived solution. The three #11970 tests that intentionally execute unrelated emitter blocks before this exception (`test_s00_macroandsetimplclassic_mx_scale_char.py:50-62`, `test_s07_mx_block_scale_mxblocka_mxblockb_char.py:48-62`, and `test_s10_enableldstr_wmma_v3_fp4_fp6_lds_char.py:47-59`) should not ratchet coverage obtained only on the way to an accepted code-generation crash; replace them with direct component tests or document those branches as unreachable until the layout is implemented.
+
+   **Proposed follow-up:** [1f868449585bce2959ccaaa50b26c9c2c760e23e](https://github.com/ROCm/rocm-libraries/commit/1f868449585bce2959ccaaa50b26c9c2c760e23e) in [#12004](https://github.com/ROCm/rocm-libraries/pull/12004) rejects the zero-width MX local-read layout during solution derivation, retains the defensive emitter check, and removes tests that collected coverage only before the expected exception.
 
 3. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/_codegen/config_harness.py:121-156` — identify the selected `BenchmarkProblems` entry explicitly.**
 
@@ -40,17 +46,23 @@ The terminal layer is not yet a trustworthy characterization net, however. Most 
 
    Add an explicit problem index or stable selector to each case, include that selector in the test ID/saved result, and assert that the selected group exists. If the set-cover calculation intended to cover the whole YAML, iterate the entries with a clearly stated per-file cap instead. This also prevents an unrelated reorder or insertion at the front of a shared `Tests/common` YAML from silently changing which behavior is measured.
 
+   **Proposed follow-up:** [41e96f0ac3a9c21a41b0625834415098a2c35545](https://github.com/ROCm/rocm-libraries/commit/41e96f0ac3a9c21a41b0625834415098a2c35545) in [#12004](https://github.com/ROCm/rocm-libraries/pull/12004) makes the `BenchmarkProblems` index explicit in every set-cover case and carries the selector into the case identity and saved result.
+
 4. **`projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/adr/0018-rebaseline-coverage-after-develop.md:9-29` and `projects/hipblaslt/tensilelite/Tensile/Tests/unit/characterization/coverage-baseline.json:6-118` — make the baseline reduction match its evidence, then regenerate it against the merge result that will actually land.**
 
    The ADR says nine floors were lowered and names six unchanged files plus three changed files. The actual parent-to-head baseline diff lowers ten floors. `KernelWriterAssembly.py`, one of the three named changed files, rises from 81.88% to 83.66%; the two large reductions that are not named are `Configuration.py` (99.25% to 92.53%, line 76) and `Solution.py` (76.77% to 73.02%, line 106). Those are also central targets of this mutation-testing stack, so silently weakening their floors is especially concerning.
 
    Reproduce and explain every reduction or retain the previous floor. After doing that, rebase/restack and regenerate from the actual merge tree: the latest public artifact is already below the checked-in `PackData.py` floor by 4.02 percentage points. Fix the 15 snapshot failures first so the normal coverage-gate step runs, rather than merely updating the baseline from a test run that is currently red.
 
+   **Proposed follow-up:** [eb3c4a3d7985ab9cbecc8aeec1b77c7809c4abd9](https://github.com/ROCm/rocm-libraries/commit/eb3c4a3d7985ab9cbecc8aeec1b77c7809c4abd9) in [#12004](https://github.com/ROCm/rocm-libraries/pull/12004) restores unsupported floor reductions and adds ADRs that distinguish retained floors, evidenced decreases, and increases measured from the merge result.
+
 5. **The 40 new `test_s*_char.py` modules in #11970 — remove the repeated harness and duplicate generation passes.**
 
    Thirty-one modules repeat the same two-test pattern: call `emit_kernels_from_config`, check generic success properties, call the same expensive function again, then hand-copy the `{basename, err}` transformation already available as `config_harness.golden_digest` (`config_harness.py:347-352`). The PR adds 2,437 lines of Python test code, 36 separate snapshot files, and 67 calls to `emit_kernels_from_config`; a representative two-test module took about 39 seconds locally because it generated the same kernel twice.
 
    Put the ordinary emit cases in one or a few stage-grouped parameter tables, run each case once through a fixture/helper, and keep only genuinely custom tests—specific rejection, state, or opcode assertions—as separate functions. The detailed target rationale can remain table metadata or concise comments. This preserves independent pytest node IDs while substantially reducing execution time and the surface that must be edited when the harness contract changes.
+
+   **Proposed follow-up:** [566c3e4736027926c25ce44acd534bbbae58c622](https://github.com/ROCm/rocm-libraries/commit/566c3e4736027926c25ce44acd534bbbae58c622) in [#12004](https://github.com/ROCm/rocm-libraries/pull/12004) makes the emit and saved-result assertions share one generated result per case, eliminating the duplicate generation pass without collapsing the existing pytest nodes.
 
 ## Suggestions
 
