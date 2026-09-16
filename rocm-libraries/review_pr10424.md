@@ -2,6 +2,8 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **PR reviewed:** [ROCm/rocm-libraries#10424](https://github.com/ROCm/rocm-libraries/pull/10424)
 
+**Review companion:** [Draft PR #1](https://github.com/newling/agent-public-reviews/pull/1)
+
 ## Tests
 
 Current PR CI checks passed. A feature-enabled `hipblaslt` build compiled the changed cache sources, including the parser, replay code, and tuning path, but the local build could not complete because its YAML configuration lacks `msgpack.hpp`; the GPU `TuningCache` suite was not runnable because this host lacks the client build's BLIS dependency.
