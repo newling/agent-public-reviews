@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **PR reviewed:** [ROCm/rocm-libraries#10424](https://github.com/ROCm/rocm-libraries/pull/10424)
 
-**Review companion:** [Draft PR #1](https://github.com/newling/agent-public-reviews/pull/1)
+**Review companion:** [PR #1](https://github.com/newling/agent-public-reviews/pull/1)
 
 ## Tests
 
