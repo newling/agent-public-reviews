@@ -1,26 +1,22 @@
-This is a review from an agent with an automatic prompt from the reviewer
+> This is a review from an agent with an automatic prompt from the reviewer
 
 **PR reviewed:** [ROCm/rocm-systems#10925](https://github.com/ROCm/rocm-systems/pull/10925)
 
-**Revision reviewed:** restacked candidate `56c3d4510d`, stacked on #11465 candidate `9a90e88c05`.
+**Revision reviewed:** rebased candidate `632d03decb`, six commits on `origin/develop` at `cf9aa6d00b`.
 
 ## Tests
 
-The final release `rocjitsu_tests` target built successfully. All 261 focused execution-plugin, hook-ordering, instruction-metadata, memory-pipeline, and race-detector tests passed, as did 44 focused generator/property tests and all 72 rebuilt gfx950/gfx1151 race integration cases. Full ten-ISA regeneration produced no residual diff, all branch-diff pre-commit hooks passed, and `git diff --check` passed. A patch-identical candidate also passed the full C++ suite with 4,421 tests passed and 23 skipped.
-
-The closed PR's historical CI was green, but GitHub records an older head than the preserved six-commit layer reviewed here. The restacked candidate therefore has no current published CI yet.
+The release `rocjitsu_tests` target and both affected HIP race-test binaries built successfully; all 259 focused execution-plugin, hook-ordering, instruction-metadata, memory-pipeline, and race-detector tests passed, as did all 72 gfx950/gfx1151 race integration cases and 394 focused ISA-profile/codegen tests. Full ten-ISA regeneration left no tracked diff, changed-file pre-commit hooks passed, and `git diff --check` passed.
 
 ## Summary
 
-This layer publishes target-specific VMCNT and LGKMCNT capacities and uses them to model issue-time implicit backpressure before an instruction reads its operands. When a new issue would overflow a finite counter, the detector applies the same conservative per-domain completion reasoning used for an explicit partial wait. Token counts are respected, including two-token scalar loads, and generic FLAT applies every applicable capacity constraint.
+This PR publishes target-specific VMCNT and LGKMCNT capacities and uses them to model issue-time implicit backpressure before a memory instruction reads its operands. When a new issue would exceed a finite counter, the detector applies the same conservative per-domain completion reasoning used for an explicit partial wait. The implementation accounts for multi-token scalar fetches, keeps generic FLAT's counter obligations independent, and preserves conservative behavior when mixed or unordered traffic prevents identifying a particular completion.
 
-The implementation handles combined and split counter aliases and recognizes each architecture's all-ones “do not wait” value. Its per-completion-class calculation is conservative for mixed ordered and unordered traffic: it retires only the minimum ordered prefix that total capacity pressure proves complete.
-
-I found no correctness issue within the PR's explicitly limited scope.
+The six-commit capacity layer replayed cleanly onto `develop`; `git range-diff` reports every patch as identical to the preserved pre-rebase series. I found no correctness issue within the explicitly limited memory-pipeline scope.
 
 ## Actionable items
 
-None for the current closed, scoped follow-up.
+None.
 
 ## Suggestions
 
@@ -28,6 +24,8 @@ None.
 
 ## Commentary
 
-This is not yet complete enough to reopen as general counter-capacity support. Messages, timestamp queries, and other non-memory counter producers do not yet have complete typed issue/result accounting. The `s_sendmsg` issue-time special case can create capacity progress, but messages are not persisted as outstanding race events, and returning messages can consume more than one token. The PR description already calls out this limitation; typed metadata and end-to-end coverage for those producers should precede reopening.
+I rechecked all 23 existing review threads. The earlier documentation, naming, default-value, architecture-source, generic-FLAT, multi-token scalar-load, test-layout, and mixed-class integration-test requests are addressed in the current stack. In particular, the two threads still shown as unresolved on GitHub are now covered by the merged generic-FLAT foundation and by the gfx950/gfx1151 mixed scalar/LDS capacity tests in this PR.
 
-The six commits were replayed directly onto the final #11465 candidate, and range-diff reports every patch as identical to the reviewed pre-restack series.
+The comments about non-memory counter producers remain relevant as an explicit scope boundary. Timestamp queries are not represented by decoded memory-issue metadata, and messages receive only an issue-time LGKMCNT pressure update rather than persistent event/result tracking. The PR description should continue to state that complete accounting for those producers and GFX12+ capacity behavior is out of scope.
+
+The earlier hot-path performance question is also a residual consideration because capacity checks scan the wave's outstanding candidate events. The previously recorded fixed-workload A/B result found no consistent regression (about a one-percent median difference, within run-to-run noise), and the scan is bounded by small hardware capacities for ordinary ordered streams; highly ambiguous mixed streams remain the worst case.
