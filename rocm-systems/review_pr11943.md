@@ -6,7 +6,7 @@
 
 ## Tests
 
-Clang 23 Release builds of `rocjitsu_tests`, `waitcheck_target_test`, and the separate register-observer ABI test succeeded; 138 focused C++ scoreboard, execution, XCNT, wait-model, state, and observer tests passed; 1,144 focused Python generator tests passed with one skip; full ten-ISA regeneration and `git diff --check` were clean. Two temporary regression probes failed as described below. The head merges cleanly with current `develop`. In public CI, pre-commit and TSan pass, but both the GCC UBSan job and TheRock's emulation stage fail while compiling the new test file; Release and ASan/UBSan remain in progress, and the policy check separately fails because the PR description has no issue reference.
+Clang 23 Release builds of `rocjitsu_tests`, `waitcheck_target_test`, and the separate register-observer ABI test succeeded; 138 focused C++ scoreboard, execution, XCNT, wait-model, state, and observer tests passed; 1,144 focused Python generator tests passed with one skip; full ten-ISA regeneration and `git diff --check` were clean. Five temporary regression probes failed as described below. The head merges cleanly with current `develop`. In public CI, pre-commit, Release, ASan/UBSan, and TSan pass, but both the GCC UBSan job and TheRock's emulation stage fail while compiling the new test file; the policy check separately fails because the PR description has no issue reference.
 
 ## Summary
 
@@ -43,6 +43,22 @@ Both the GCC UBSan job and TheRock's emulation build fail under `-Werror`. GCC 1
 On legacy CDNA, start with 14 ordered DS entries in the 15-entry LGKMCNT domain and admit an `s_load_dwordx2`. The incoming instruction needs two entries, so at least one old DS operation must complete before admission. The current pre-execution check sees only 14 entries and retires nothing; a later read of the oldest DS destination produces a false warning. The temporary decoded-instruction test in the appendix reproduces this on the reviewed head.
 
 Determine each incoming counter increment before operand reads, pass that reservation size into the admission calculation, and leave at most `capacity - incoming_units` entries in a qualifying ordered class. The generated `MemoryIssueInfo` already provides the value for pipeline-backed instructions; the shared event description should carry the same information for inline two-unit producers. Add boundary tests for both wide SMEM and message returns so the pre-execution and post-execution models cannot diverge again.
+
+### Compare overwrite ordering pairwise rather than from counter-wide history
+
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.cpp:54-103,359-382`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:1094-1112`
+
+The WAW exemption passes only the incoming producer's counter and then asks whether that counter has ever become unordered. That is neither enough information for the first cross-class overwrite nor stable after unrelated traffic. On RDNA1, an ordinary VMEM load followed by an image sample writing the same VGPR is incorrectly exempted: both use the load counter, the incoming sample has not yet been issued to change the counter state, but their completion classes do not form one FIFO. In the other direction, on legacy CDNA an unrelated generic-FLAT operation makes the load counter's `unordered_` bit sticky, after which two ordinary VMEM producers writing the same VGPR spuriously diagnose a WAW even though those two producers remain ordered with each other. The two temporary unit probes in the appendix reproduce both outcomes.
+
+Make this a pairwise comparison: pass the incoming producer's normalized completion-order identity into `access()`, retain or resolve the pending producer's identity, and exempt the overwrite only when both identities are the same non-unordered class. The existing per-class `Order` representation already has the necessary distinction; this should also be aligned with the shared `MemoryCompletionClass` model (extending it where Waitcheck distinguishes image sub-queues). Add regressions for both the first mixed-class transition and same-class traffic in a counter that also contains an unrelated unordered event.
+
+### Preserve generic FLAT's completion class when it is routed to LDS
+
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:922-985,1114-1171`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.cpp:152-183`
+
+`memory_wait_lds_access()` derives `LdsKind::Ds` solely from the post-routing `LOCAL_MEM` tag. A generic FLAT access routed through the shared aperture therefore becomes indistinguishable from an ordinary DS instruction, and `access_lds()` suppresses every same-kind conflict as ordered. On legacy CDNA those operations are not one completion-order class. A temporary test with an outstanding `flat_store_dword` to LDS followed by `ds_read_b32` of the same bytes expected one warning and received zero.
+
+Carry the decoded completion class into `LdsEvent` and exempt a same-wave conflict only when the pending and current operations share the same non-`UNORDERED` class. The race detector already applies this pairwise rule to the same routed-memory observation, so this checker can consume the same `MemoryIssueInfo` rather than reconstructing order from the mutated pipeline tag. Cover both operation orders and both RAW/WAR directions on a legacy target.
 
 ### Preserve the diagnostic policy when restoring a checkpoint
 
@@ -134,5 +150,74 @@ TEST(CheckpointTest, RoundTripsMemoryWaitDiagnostics) {
   auto *restored_cu = restored.soc()->xcd(0)->shader_engine(0)->compute_unit(0);
   EXPECT_EQ(restored_cu->config().memory_wait_diagnostics,
             amdgpu::MemoryWaitDiagnostics::Warn);
+}
+```
+
+The following two tests were added temporarily to `memory_wait_scoreboard_test.cpp`, failed in opposite directions, and were removed. They use the existing `MemoryWaitScoreboardTest` fixture:
+
+```cpp
+TEST_F(MemoryWaitScoreboardTest, DifferentOrderedClassesDoNotSuppressAnOverwrite) {
+  using namespace waitcheck_detail;
+  const ClassifiedEvent vmem{WaitCounterKind::Load, WaitEventKind::VmemNoSamplerLoad};
+  const ClassifiedEvent sample{WaitCounterKind::Load, WaitEventKind::Sample};
+  const auto sequence = state.issue(vmem, ROCJITSU_CODE_ARCH_RDNA1);
+  state.add({sequence, 0x100, 1, {RegClass::VGPR, 5, 1}, WaitCounterKind::Load, 0xf});
+
+  // This is the information track_memory_wait passes for an incoming sample:
+  // the shared counter, but not the sample completion class.
+  state.access({RegClass::VGPR, 5, 1}, 1, 0xf, true, sample.counter);
+  EXPECT_EQ(hazards.size(), 1u);
+}
+
+TEST_F(MemoryWaitScoreboardTest, OrderedWritesIgnoreAnUnrelatedUnorderedCounterMember) {
+  using namespace waitcheck_detail;
+  const ClassifiedEvent vmem{WaitCounterKind::Load, WaitEventKind::VmemNoSamplerLoad};
+  const ClassifiedEvent flat{WaitCounterKind::Load, WaitEventKind::FlatLoad};
+  const auto sequence = state.issue(vmem, ROCJITSU_CODE_ARCH_CDNA4);
+  state.add({sequence, 0x100, 1, {RegClass::VGPR, 5, 1}, WaitCounterKind::Load, 0xf});
+  state.issue(flat, ROCJITSU_CODE_ARCH_CDNA4);
+
+  state.access({RegClass::VGPR, 5, 1}, 1, 0xf, true, WaitCounterKind::Load);
+  EXPECT_TRUE(hazards.empty());
+}
+```
+
+The following test was added temporarily to `memory_wait_scoreboard_test.cpp`, failed because the diagnostic count remained zero, and was removed:
+
+```cpp
+TEST(MemoryWaitExecutionTest, GenericFlatAndDsLdsAccessesAreNotOneOrderedClass) {
+  GpuMemory memory("flat_ds_wait_memory");
+  L2Cache l2("flat_ds_wait_l2");
+  ComputeUnitCore::Config config{};
+  config.memory_wait_diagnostics = MemoryWaitDiagnostics::Warn;
+  config.arch = ROCJITSU_CODE_ARCH_CDNA4;
+  config.num_wf_slots = 1;
+  config.sgprs_per_wf = 128;
+  config.vgprs_per_wf = 32;
+  config.lds_size_kb = 64;
+  auto cu = ComputeUnitCore::create("flat_ds_wait_cu", config, &memory, &l2);
+  auto *wf = cu->dispatch_wf(0, 0x100, 128, 32);
+  ASSERT_NE(wf, nullptr);
+  wf->set_lds_size(64);
+
+  auto make_state = [](bool is_load) {
+    auto state = std::make_unique<VectorMemState>(LOCAL_MEM);
+    state->is_load = is_load;
+    state->exec_mask = state->lane_mask = 1;
+    state->elem_size = 4;
+    state->num_elems = 1;
+    state->per_lane_addr[0] = 8;
+    return state;
+  };
+
+  Instruction flat("flat_store_dword", nullptr);
+  flat.set_data(make_state(false));
+  cu->track_memory_wait(flat, *wf, 1);
+  wf->pc += 4;
+
+  Instruction ds("ds_read_b32", nullptr);
+  ds.set_data(make_state(true));
+  cu->track_memory_wait(ds, *wf);
+  EXPECT_EQ(cu->memory_wait_diagnostic_count(), 1u);
 }
 ```
