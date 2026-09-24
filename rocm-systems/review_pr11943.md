@@ -2,107 +2,140 @@
 
 **PR reviewed:** [ROCm/rocm-systems#11943](https://github.com/ROCm/rocm-systems/pull/11943)
 
-**Revision reviewed:** `f2d905dc3748deb9e7136c0bda7dd9b1818f55b9`
+**Revision reviewed:** `c0877515b28bdf310a85b49f3c7ec7b9792f5367`
 
 ## Tests
 
-Clang 23 Release builds of `rocjitsu_tests`, `waitcheck_target_test`, and the separate register-observer ABI test succeeded; 138 focused C++ scoreboard, execution, XCNT, wait-model, state, and observer tests passed; 1,144 focused Python generator tests passed with one skip; full ten-ISA regeneration and `git diff --check` were clean. Five temporary regression probes failed as described below. The head merges cleanly with current `develop`. In public CI, pre-commit, Release, ASan/UBSan, and TSan pass, but both the GCC UBSan job and TheRock's emulation stage fail while compiling the new test file; the policy check separately fails because the PR description has no issue reference.
+Clang 23 Release builds of the core tests, Waitcheck tests, and normal register-observer ABI test succeeded. Seventy focused MemoryWait/XCNT/observer tests and all 68 Waitcheck target/state tests passed. The full amdisa Python suite passed 2,196 tests with 46 skips; full ten-ISA regeneration and `git diff --check` were clean. All 53 registered gfx950/gfx1151 HIP race-detector cases ran successfully with both diagnostics enabled: the core warned in 20 of 29 plugin-positive cases and in none of the 24 negative/control cases. A second run without the plugin produced the same core-warning set; the plugin-specific test assertions then fail by construction. In particular, the seven LDS-address-positive cases produce no core warning, as expected for the revised scope. Three focused counterexamples reproduce the remaining admission, checkpoint, and duplicate-report issues described below; the two earlier WAW counterexamples now pass.
+
+The GCC 13 UBSan register-observer ABI test fails locally and in the current CI run with an undefined `ComputeUnitCore` typeinfo symbol. The completed substantive CI jobs pass; refreshed Release, Clang ASan/UBSan, and final platform-validation jobs are still running. The policy job separately fails because the PR description has no issue reference.
 
 ## Summary
 
-This adds an optional dynamic memory-wait checker to the core simulator. The checker keeps eager functional writeback unchanged while separately retaining per-wave completion-counter positions, ordered completion classes, register lane/byte footprints, LDS byte ranges, and gfx1250 XCNT replay-source lifetimes. Register accessors consult a compact shadow before entering the detailed checker, explicit and embedded waits retire proven prefixes, and diagnostics report rather than stop execution.
+This PR adds an optional dynamic missing-wait diagnostic to the core simulator. rocJITsu still writes memory results eagerly for functional execution, but a per-wave scoreboard separately records when those register results are architecturally ready. Executed reads and overwrites are compared against that state; explicit and embedded waits, ordered completion, finite counter capacity, and gfx1250 XCNT rules retire dependencies.
 
-The raw GitHub size makes the change look somewhat larger than the authored design surface:
+The latest discussion materially clarifies the design. This is not a same-wave LDS race detector: the fourth commit removes LDS-address tracking, and the documentation now explicitly excludes memory visibility, address overlap, barriers, and communication between lanes or waves. It checks register-result readiness and qualified replay-source lifetimes. The fifth commit updates that narrower model for formatted/packed-D16 buffer results and the separate pointer result of LDS-stack instructions. The sixth and seventh commits preserve unordered and unmapped replay dependencies and make WAW decisions from the actual pair of completion classes; the previous false-positive and false-negative WAW probes now pass.
+
+The current diff against its rebased parent is:
 
 | Area | Files | Additions | Deletions | Churn |
 |---|---:|---:|---:|---:|
-| Generated ISA | 150 | 6,020 | 417 | 6,437 |
-| Handwritten implementation | 26 | 1,552 | 122 | 1,674 |
-| Tests | 15 | 2,428 | 41 | 2,469 |
-| Documentation | 3 | 263 | 0 | 263 |
-| Total | 194 | 10,263 | 580 | 10,843 |
+| Generated ISA | 150 | 6,012 | 417 | 6,429 |
+| Handwritten implementation | 30 | 1,467 | 144 | 1,611 |
+| Tests | 10 | 2,543 | 22 | 2,565 |
+| Documentation | 3 | 266 | 0 | 266 |
+| Total | 193 | 10,288 | 583 | 10,871 |
 
-Thus roughly 59% of the churn and 77% of the files are generated. The substantive production change is still large: about 1,430 net handwritten lines, including a new 656-line scoreboard and about 600 lines of compute-unit/wavefront integration. Conceptually it combines completion accounting, completion-order proofs, fine-grained register observation, same-wave LDS conflict detection, and XCNT replay lifetime tracking. I would call that high state-machine complexity even though the implementation is fairly localized and the 73 newly named tests are unusually thorough.
+About 59% of the churn and 78% of the files are generated. The authored production change is nevertheless substantial: about 1,323 net handwritten lines, including a 620-line scoreboard and roughly 398 net lines of compute-unit/header integration. The complexity is concentrated in four interacting concerns: counter accounting, completion-order proofs, fine-grained register observation, and XCNT replay lifetimes. Seventy-five newly named C++ tests give the machinery unusually good direct coverage.
 
-Several design decisions are worth retaining. Readiness is correctly kept separate from eager data availability; counter membership is kept separate from completion order; lane and byte masks survive into the dynamic check; and observer snapshots and helper-thread execution are deliberately prevented from consuming dependencies. The current revision also responds substantively to the prior discussion by documenting incomplete coverage, adding finite-counter progress and LDS checks, and defaulting the diagnostic off. The implementation should not land unchanged because of the issues below, but none requires abandoning the overall approach.
+The narrower scope makes the design considerably easier to justify. Keeping architectural readiness separate from eager data availability is the right abstraction; lane and byte masks are retained; special scalar state is covered; observer snapshots and helper execution are kept from consuming dependencies; and the default-off policy is appropriate. I would keep the overall approach. The three items in the next section should be resolved in this PR; the later suggestions are suitable follow-up work and should not hold up this change.
 
-## Actionable items
+## Actionable items for this PR
 
-### Keep the new tests warning-clean under GCC
+### Use the incoming producer's actual counter increment during admission
 
-**File:** `emulation/rocjitsu/tests/memory_wait_scoreboard_test.cpp:1417-1425`
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.cpp:129-143,303-322`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:1098-1103`
 
-Both the GCC UBSan job and TheRock's emulation build fail under `-Werror`. GCC 13 reports `-Wdangling-else` for the unbraced outer `if` at line 1417 because `EXPECT_EQ` expands to control flow, and `-Wrange-loop-construct` because the structured binding at line 1425 copies each tuple. Add braces around the first body and bind the tuple as `const auto &`. These are mechanical changes, but the required GCC build cannot reach any tests until they are made.
+`before()` applies finite-counter backpressure as though every incoming producer needs one slot. It enters the admission path only when an ordered class already exceeds the largest encodable wait value, and `backpressure()` always leaves `capacity - 1` old units. After execution, however, `track_memory_wait()` records two units for wide scalar-memory operations and returning messages. The decoded `MemoryCounterObligation::counter_increment()` already expresses the same two-unit rule for pipeline-backed instructions.
 
-### Reserve all counter units before a multi-unit producer executes
+On legacy CDNA, put 14 ordered DS units in the 15-unit LGKMCNT domain and then admit `s_load_dwordx2`. The incoming operation needs two units, so one old DS result must complete before the scalar load reads its operands. The current pre-execution check sees only 14 old units, retires nothing, and later diagnoses a false missing wait on the oldest DS result. The first appendix test reproduces this on the reviewed head.
 
-**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.cpp:111-126,323-342`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:1162-1167`
+Determine the increment before operand reads and leave at most `capacity - incoming_units` entries in each qualifying ordered class. Prefer carrying this through the same decoded event description used after execution rather than adding another manual mnemonic rule. Add capacity-boundary tests for both wide SMEM and returning messages.
 
-`before()` decides whether the incoming instruction forces progress as though every producer needs one counter slot: it enters the backpressure path only when an ordered class already has `maximum + 1` entries, and `backpressure()` always leaves `capacity - 1` old entries. After execution, however, `track_memory_wait()` records two units for a wide scalar-memory operation and for a returning message. The existing decoded `MemoryCounterObligation::counter_increment()` also records this two-unit contract.
+### Keep generic FLAT results pending until both architectural counters retire
 
-On legacy CDNA, start with 14 ordered DS entries in the 15-entry LGKMCNT domain and admit an `s_load_dwordx2`. The incoming instruction needs two entries, so at least one old DS operation must complete before admission. The current pre-execution check sees only 14 entries and retires nothing; a later read of the oldest DS destination produces a false warning. The temporary decoded-instruction test in the appendix reproduces this on the reviewed head.
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:1036-1052,1112-1118`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/isa/arch/amdgpu/shared/memory_issue.h:72-86`; `emulation/rocjitsu/docs/memory-wait-counter-coverage.md:21-36,52-57`; `emulation/rocjitsu/tests/race-detector/hip_race_gfx950_test.hip:86-168`
 
-Determine each incoming counter increment before operand reads, pass that reservation size into the admission calculation, and leave at most `capacity - incoming_units` entries in a qualifying ordered class. The generated `MemoryIssueInfo` already provides the value for pipeline-backed instructions; the shared event description should carry the same information for inline two-unit producers. Add boundary tests for both wide SMEM and message returns so the pre-execution and post-execution models cannot diverge again.
+The core checker refines a generic FLAT result using the executed route: global lanes remain pending only on VMEM, while shared-aperture lanes remain pending only on LDS. That conflicts with the architectural contract already recorded in [ROCm/rocm-systems#11456](https://github.com/ROCm/rocm-systems/issues/11456): generic FLAT increments both applicable counter domains, its two portions complete independently, and the instruction is not complete until both obligations retire, even when all executed lanes happen to resolve to one memory space. The issue cites the CDNA4 and RDNA4 ISA descriptions and LLVM's independent dual-event model. `MemoryIssueInfo` and the race detector's committed tests encode the same rule.
 
-### Compare overwrite ordering pairwise rather than from counter-wide history
+The observable difference is:
 
-**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.cpp:54-103,359-382`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:1094-1112`
+| Case | Core warnings | Plugin warnings |
+|---|---:|---:|
+| `flat_global_vmcnt_only_race` | 0 | 1 |
+| `flat_global_lgkmcnt_only_race` | 1 | 1 |
+| `flat_lds_vmcnt_only_race` | 1 | 1 |
+| `flat_lds_lgkmcnt_only_race` | 0 | 1 |
 
-The WAW exemption passes only the incoming producer's counter and then asks whether that counter has ever become unordered. That is neither enough information for the first cross-class overwrite nor stable after unrelated traffic. On RDNA1, an ordinary VMEM load followed by an image sample writing the same VGPR is incorrectly exempted: both use the load counter, the incoming sample has not yet been issued to change the counter state, but their completion classes do not form one FIFO. In the other direction, on legacy CDNA an unrelated generic-FLAT operation makes the load counter's `unordered_` bit sticky, after which two ordinary VMEM producers writing the same VGPR spuriously diagnose a WAW even though those two producers remain ordered with each other. The two temporary unit probes in the appendix reproduce both outcomes.
+These are two false negatives in the core diagnostic under the project's existing contract. Retain one logical result dependency until both counter obligations have been satisfied. If that is represented by two scoreboard entries, share report/recovery state so one access produces one warning. This PR does not need to solve #11456's larger mixed-memory-space functional-execution problem, but it should not weaken the conservative architectural readiness rule while that limitation remains.
 
-Make this a pairwise comparison: pass the incoming producer's normalized completion-order identity into `access()`, retain or resolve the pending producer's identity, and exempt the overwrite only when both identities are the same non-unordered class. The existing per-class `Order` representation already has the necessary distinction; this should also be aligned with the shared `MemoryCompletionClass` model (extending it where Waitcheck distinguishes image sub-queues). Add regressions for both the first mixed-class transition and same-class traffic in a counter that also contains an unrelated unordered event.
+### Fix the GCC/UBSan register-observer DSO boundary
 
-### Preserve generic FLAT's completion class when it is routed to LDS
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.h:118`; `emulation/rocjitsu/tests/CMakeLists.txt:1702-1722`; `emulation/rocjitsu/tests/register_observer_probe.cpp:1-16`
 
-**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:922-985,1114-1171`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.cpp:152-183`
+The new loadable-observer test passes in the normal Clang build but fails under GCC 13 UBSan before its assertions run:
 
-`memory_wait_lds_access()` derives `LdsKind::Ds` solely from the post-routing `LOCAL_MEM` tag. A generic FLAT access routed through the shared aperture therefore becomes indistinguishable from an ordinary DS instruction, and `access_lds()` suppresses every same-kind conflict as ordered. On legacy CDNA those operations are not one completion-order class. A temporary test with an outstanding `flat_store_dword` to LDS followed by `ds_read_b32` of the same bytes expected one warning and received zero.
+```text
+libregister_observer_probe.so: undefined symbol: _ZTIN8rocjitsu6amdgpu15ComputeUnitCoreE
+```
 
-Carry the decoded completion class into `LdsEvent` and exempt a same-wave conflict only when the pending and current operations share the same non-`UNORDERED` class. The race detector already applies this pairwise rule to the same routed-memory observation, so this checker can consume the same `MemoryIssueInfo` rather than reconstructing order from the mutated pipeline tag. Cover both operation orders and both RAW/WAR directions on a legacy target.
+The probe DSO's sanitized inline register-access code references `typeinfo for ComputeUnitCore`, while `librocjitsu.so` contains that typeinfo only as a local symbol. A temporary prototype marking the class declaration `class RJ_API_EXPORT ComputeUnitCore ...` made the test pass, confirming the visibility boundary. Export the required RTTI/class ABI, or move the observer bridge that needs it out of the module and expose a narrower exported entry point. Exporting the entire class is mechanically simple but unnecessarily broadens the shared-library ABI.
 
-### Preserve the diagnostic policy when restoring a checkpoint
+The earlier GCC source-warning review comments and the no-`experimental/simd` carry fallback have been addressed; this is the remaining GCC failure on the current head.
 
-**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/config/config_loader.cpp:562-580`; `emulation/rocjitsu/schemas/simulation_config.fbs:10-17`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/config/checkpoint.cpp:114-121,168-184`
+## Follow-up suggestions
 
-The JSON loader puts `memory_wait_diagnostics=warn` into `ComputeUnitCore::Config`, but neither checkpoint schema nor `serialize_config()` stores it, and `config_from_checkpoint()` consequently reconstructs the default `Off` value. A save/restore therefore silently disables a user-requested diagnostic for every subsequent instruction. This is separate from the documented choice not to serialize already-pending scoreboard entries: even new dependencies created after restore are no longer checked.
+The items in this section would improve maintainability, coverage, or polish, but I would not require them before this PR lands.
 
-Append a backward-compatible field and restore it, using absence to mean `Off`. If compute-unit settings may differ, preserve it per CU as is already done for heterogeneous `functional_quantum`; otherwise validate and document the uniformity requirement. Add a round-trip test like the one in the appendix. If deliberately disabling diagnostics on restore is the intended policy because pending state is dropped, make that transition explicit to the caller rather than silently changing the configuration.
+### Give the shared wait policy a neutral owner
 
-## Suggestions
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/CMakeLists.txt:39-45`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.h:6-8`; `emulation/rocjitsu/lib/python/amdisa/codegen/_generator.py:11660-11665`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:919-1121`
 
-### Make instruction wait semantics a neutral shared layer
+The VM now imports and links a component named for the offline Waitcheck analyzer. Producer truth is divided among the generator's `MEMORY_WAIT_PRODUCER` flag, `WaitcheckTarget::classify_events()`, pre-existing `MemoryIssueInfo` obligations, and manual unit-count rules in `track_memory_wait()`. The multi-unit admission bug is a concrete symptom of those parallel representations.
 
-**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/CMakeLists.txt:39-45`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.h:6-8`; `emulation/rocjitsu/lib/python/amdisa/codegen/_generator.py:224-263`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:990-1188`
+Move target-independent counter decoding, event classification, completion classes, and increment counts into a neutral AMDGPU ISA policy layer consumed by Waitcheck and the VM. The race detector already consumes `MemoryIssueInfo`, so this PR does not yet give it a drop-in replacement for its own state machine; a neutral authoritative policy is the useful reuse boundary.
 
-Reusing wait decoding is the right goal, but the dependency direction is backwards: the VM now imports `code/analysis/waitcheck/target.h` and links an object library named for the offline analyzer. Producer truth is also spread over the generator's prefix-based `MEMORY_WAIT_PRODUCER` flag, `WaitcheckTarget::classify_events()`, existing `MemoryIssueInfo` obligations, and two manual unit-count rules in `track_memory_wait()`. The multi-unit admission defect is one concrete consequence of those parallel representations.
+### Make checkpoint behavior explicit
 
-Move the target-independent counter enums, wait decoding, producer classification, completion class, and increment count into a neutral AMDGPU ISA policy module consumed by both Waitcheck and the VM. Prefer making one decoded obligation representation authoritative, extending it for inline producers rather than adding another name-based gate. That would preserve the valuable sharing while making the layer boundary and consistency tests much clearer.
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/config/checkpoint.cpp:114-121,168-184`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/config/config_loader.cpp:572-578`; `emulation/rocjitsu/schemas/simulation_config.fbs:10-17`
 
-### Keep architectural register consumption explicit
+Saving and restoring a VM configured with `memory_wait_diagnostics=warn` reconstructs the setting as `Off`. The documentation says pending dependency state is not serialized, but it does not say the diagnostic itself is silently disabled. A temporary round-trip test confirmed the change in policy.
 
-**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/wavefront.h:359-436,525-539,1078-1090`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.h:202-269`; `emulation/rocjitsu/lib/python/amdisa/codegen/_generator.py:11868-11869`
+Either persist the flag and clearly state that only dependencies created after restore are checked, or explicitly document/report that restore disables the diagnostic because pre-checkpoint scoreboard state is unavailable. I would not require serializing the pending scoreboard in this PR.
 
-Ordinary-looking `Wavefront` getters and setters now mutate diagnostic state through ambient thread-local scope. Internal inspection consequently has to know when to install `SuspendedMemoryWaitCheck`, and legacy SDWA compare generation needs a second thread-local suppression specifically for temporary VCC writes. The current exceptions are thoughtfully tested, but this is a fragile extension point: a future bookkeeping read inside instruction scope can emit a false warning and erase the pending record, hiding the later architectural consumer.
+### Coalesce aliased results before reporting
 
-Longer term, extend `RegisterAccess` to cover explicit EXEC/VCC/SCC/M0/FLAT_SCRATCH semantic reads and writes, and keep raw `Wavefront` state access side-effect-free for logging, snapshots, preservation, and completion. If TLS remains necessary for helper execution, confine it to that bridge rather than making it the meaning of otherwise general accessors.
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp:994-1024,1112-1118`; `emulation/rocjitsu/tests/memory_wait_scoreboard_test.cpp:672-712`
+
+The fifth commit correctly tracks the two-VGPR result and independent pointer result of `ds_bvh_stack_push8_pop2_rtn_b64`. If `ADDR` aliases `VDST` or `VDST+1`, however, the same instruction/completion creates overlapping pending records and one later access produces two identical warnings. Extending the new test's pointer cases from `{16, 31}` to `{12, 16, 31}` reproduced a count of two for `pointer=12, register=12`.
+
+Coalescing overlapping destinations from the same issue, or deduplicating reports while retaining the union of lane/byte coverage, would keep one architectural dependency from appearing as two findings.
+
+### Build a shared differential suite from both test corpora
+
+**Files:** `emulation/rocjitsu/tests/memory_wait_scoreboard_test.cpp:500-1574`; `emulation/rocjitsu/tests/race-detector/CMakeLists.txt:19-148`; `emulation/rocjitsu/tests/race-detector/race_test_support.hpp:16-55`; `emulation/rocjitsu/tests/race-detector/hip_race_gfx950_test.hip`; `emulation/rocjitsu/tests/race-detector/hip_race_gfx1151_test.hip`
+
+The existing HIP corpus gives a useful scope map. The core diagnoses all 18 ordinary same-wave register RAW/WAW/counter cases and two of the four generic-FLAT cases. The seven LDS-address cases—one same-wave direct-to-LDS case and six cross-wave cases—are intentionally plugin-only. They also produced no core warning on the earlier LDS-enabled revision: the six cross-wave cases were outside that per-wave model, and the direct-to-LDS case was filtered because the wave's LDS allocation size was unavailable. Removing the LDS shadow therefore did not change the measured 20-of-29 overlap. The core also warns in zero of 24 negative/control cases.
+
+This PR also adds 24 `MemoryWaitExecutionTest` cases whose decoded instruction sequences are useful inputs for the plugin: scalar/vector RAW and WAW, partial waits, counter admission, counter-only operations, routed FLAT, and exact lane/byte footprints. They currently assert the core's diagnostic counter, and some directly manipulate the core scoreboard, so they cannot simply be rerun against the plugin. Separate reusable scenario construction from detector-specific observation, then run applicable scenarios through a core-count adapter and a plugin-finding adapter. The 32 lower-level scoreboard tests should remain implementation tests, while XCNT, TLS/shadow lifecycle, special-register gaps, and LDS-address cases should be capability-tagged rather than forced to agree. Once the FLAT issue above is fixed, both one-counter HIP cases should be common positive cases. Add a real gfx1250 HIP case for XCNT if that path later becomes available in the plugin.
+
+### Keep the enabled-cost claim workload-specific
+
+**Files:** `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/compute_unit.cpp`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/wavefront.h`; `emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/amdgpu/memory_wait_scoreboard.cpp`
+
+I could not reproduce an approximately 2% enabled overhead. Using Clang 23 Release builds of the exact rebased parent and reviewed head, LTO disabled, one warm-up, six balanced paired rounds, and one physical core's two SMT CPUs, I measured:
+
+| Workload | Core diagnostic vs PR-off | Race plugin vs PR-off | PR-off vs parent |
+|---|---:|---:|---:|
+| gfx1250 hipBLASLt f32 128x128x128, 100 iterations | +10.9% [+10.1%, +13.3%] | +42.7% [+40.0%, +45.1%] | +0.1% |
+| gfx1250 hipBLASLt f32 256x256x3072 | +14.2% [+13.5%, +15.0%] | +58.8% [+58.1%, +59.7%] | +0.4% |
+| gfx950 `stress_wavefront_reuse`, 50 repetitions | +8.6% [+7.7%, +8.6%] | +148.3% [+143.1%, +152.6%] | +0.9% |
+
+Process CPU time corroborated the direction: +11.0%, +14.4%, and +9.1% for the core, versus +42.8%, +58.0%, and +151.4% for the plugin. The two hipBLASLt runs were numerically correct and had no core warnings; the plugin produced two existing findings per process. The stress case was clean under both diagnostics. Default-off showed no material regression.
+
+The core checker is substantially cheaper than the plugin on these workloads, but its enabled cost is not approximately 2% and is not workload-independent. Keeping it off by default is appropriate. The always-present `MemoryWaitShadow` also costs 1,280 bytes per materialized wave slot even while disabled; consider folding it into the optional allocation if large topologies make that footprint material.
 
 ## Commentary
 
-I would not reject the core placement merely because an execution plugin overlaps this functionality. Correctly checking pre-execution admission, implicit scalar state, routed FLAT lanes, and asynchronously submitted MMA operands needs information at the execution boundary; keeping a lightweight core mechanism can be justified. The callback-shaped scoreboard and default-off policy are also good foundations. The main long-term cost is maintaining another dynamic hazard engine beside the race detector, so the shared event/obligation model matters more than whether the final reporter is called a plugin.
+After the LDS-address code was removed, I no longer view this as an attempted replacement for the race-detector plugin. The division is coherent: the core catches missing waits at actual register-consumption points, including implicit and awkward scalar state, while the plugin retains address-level LDS/global visibility and cross-wave reasoning. The plugin should not reduce its scope merely because the tools overlap on ordinary register-result hazards.
 
-The default-off fast path avoids allocating the detailed scoreboard, but it does not eliminate all disabled-state cost: `MemoryWaitShadow` contributes 1,280 bytes to every materialized wave slot. At the maximum shape of the checked-in four-GPU gfx1250 topology, that is about 80 MiB if all 65,536 slots have been materialized. This is not a blocker at that scale, and the documentation discloses it, but moving the shadow and scoreboard into one optional allocation would make the disabled-by-default contract cleaner if the topology grows.
+The instruction-spacing false-positive class raised in the discussion remains, but it is now documented explicitly. With no known kernel intentionally relying on a worst-case latency proof, and with contention making such a proof difficult, I would treat this as a declared limitation rather than a blocker.
 
-There is a natural, non-fussy way to split the work:
-
-1. Land a prerequisite that extracts the shared wait policy, carries the producer/obligation metadata, and includes the independent Waitcheck corrections and register-access plumbing. Keep each generator change together with its generated output.
-2. Land the basic core completion checker: ordered/unordered counter state, register RAW/WAW detection, waits/backpressure, configuration, and its direct tests.
-3. Add LDS byte-range hazards and gfx1250 XCNT replay-source lifetimes as follow-ups. They are independent semantic domains with distinct assumptions and tests; XCNT in particular can stand alone if a third PR is still too broad.
-
-The current three commits do not provide that separation: the first commit contains 192 of the 194 changed files and almost 94% of the additions, while the later commits add the backpressure/LDS extension and change the default. I would prefer the split above for review and bisectability, but I would not insist on separating small generated or test-only pieces merely to reduce the displayed line count.
+XCNT is the only obvious semantic seam in the patch, but I would not ask the author to restack the current work merely to extract it. It shares the scoreboard, shadow, register hooks, configuration, and much of the test setup, so splitting it now would create substantial churn without making the remaining review dramatically smaller. It is a reasonable boundary only if later work naturally needs an independently staged rollout.
 
 ## Appendix: temporary regression probes
 
-The following test was added temporarily to `memory_wait_scoreboard_test.cpp` (with the CDNA4 builders header included), failed on the reviewed revision, and was removed:
+The following test was added temporarily to `memory_wait_scoreboard_test.cpp` with the CDNA4 builders header, failed on the reviewed revision, and was removed:
 
 ```cpp
 TEST_F(MemoryWaitScoreboardTest, WideProducerReservesBothCounterUnitsBeforeReadingOperands) {
@@ -124,100 +157,5 @@ TEST_F(MemoryWaitScoreboardTest, WideProducerReservesBothCounterUnitsBeforeReadi
 
   state.before(*incoming.value(), ROCJITSU_CODE_ARCH_CDNA4);
   EXPECT_FALSE(shadow.test(5));
-}
-```
-
-The following test was added temporarily to `config_test.cpp`, failed because the restored value was `Off`, and was removed:
-
-```cpp
-TEST(CheckpointTest, RoundTripsMemoryWaitDiagnostics) {
-  std::string json = functional_quantum_checkpoint_config(1, 1);
-  const auto first_cu_config = json.find(R"({"key":"functional_quantum")");
-  ASSERT_NE(first_cu_config, std::string::npos);
-  json.insert(first_cu_config,
-              R"({"key":"memory_wait_diagnostics","value":"warn"},)");
-
-  auto source = config::load_config_from_string(json, rocjitsu::kEmbeddedSchema);
-  auto *source_cu = source.soc()->xcd(0)->shader_engine(0)->compute_unit(0);
-  ASSERT_EQ(source_cu->config().memory_wait_diagnostics,
-            amdgpu::MemoryWaitDiagnostics::Warn);
-
-  test::ScopedTempFile checkpoint_file("rocjitsu-memory-wait-checkpoint-");
-  config::save_checkpoint(checkpoint_file.path(), *source.soc(), 0, source.engine_config,
-                          source.cpu_dispatch_threads);
-
-  auto restored = config::restore_checkpoint(checkpoint_file.path());
-  auto *restored_cu = restored.soc()->xcd(0)->shader_engine(0)->compute_unit(0);
-  EXPECT_EQ(restored_cu->config().memory_wait_diagnostics,
-            amdgpu::MemoryWaitDiagnostics::Warn);
-}
-```
-
-The following two tests were added temporarily to `memory_wait_scoreboard_test.cpp`, failed in opposite directions, and were removed. They use the existing `MemoryWaitScoreboardTest` fixture:
-
-```cpp
-TEST_F(MemoryWaitScoreboardTest, DifferentOrderedClassesDoNotSuppressAnOverwrite) {
-  using namespace waitcheck_detail;
-  const ClassifiedEvent vmem{WaitCounterKind::Load, WaitEventKind::VmemNoSamplerLoad};
-  const ClassifiedEvent sample{WaitCounterKind::Load, WaitEventKind::Sample};
-  const auto sequence = state.issue(vmem, ROCJITSU_CODE_ARCH_RDNA1);
-  state.add({sequence, 0x100, 1, {RegClass::VGPR, 5, 1}, WaitCounterKind::Load, 0xf});
-
-  // This is the information track_memory_wait passes for an incoming sample:
-  // the shared counter, but not the sample completion class.
-  state.access({RegClass::VGPR, 5, 1}, 1, 0xf, true, sample.counter);
-  EXPECT_EQ(hazards.size(), 1u);
-}
-
-TEST_F(MemoryWaitScoreboardTest, OrderedWritesIgnoreAnUnrelatedUnorderedCounterMember) {
-  using namespace waitcheck_detail;
-  const ClassifiedEvent vmem{WaitCounterKind::Load, WaitEventKind::VmemNoSamplerLoad};
-  const ClassifiedEvent flat{WaitCounterKind::Load, WaitEventKind::FlatLoad};
-  const auto sequence = state.issue(vmem, ROCJITSU_CODE_ARCH_CDNA4);
-  state.add({sequence, 0x100, 1, {RegClass::VGPR, 5, 1}, WaitCounterKind::Load, 0xf});
-  state.issue(flat, ROCJITSU_CODE_ARCH_CDNA4);
-
-  state.access({RegClass::VGPR, 5, 1}, 1, 0xf, true, WaitCounterKind::Load);
-  EXPECT_TRUE(hazards.empty());
-}
-```
-
-The following test was added temporarily to `memory_wait_scoreboard_test.cpp`, failed because the diagnostic count remained zero, and was removed:
-
-```cpp
-TEST(MemoryWaitExecutionTest, GenericFlatAndDsLdsAccessesAreNotOneOrderedClass) {
-  GpuMemory memory("flat_ds_wait_memory");
-  L2Cache l2("flat_ds_wait_l2");
-  ComputeUnitCore::Config config{};
-  config.memory_wait_diagnostics = MemoryWaitDiagnostics::Warn;
-  config.arch = ROCJITSU_CODE_ARCH_CDNA4;
-  config.num_wf_slots = 1;
-  config.sgprs_per_wf = 128;
-  config.vgprs_per_wf = 32;
-  config.lds_size_kb = 64;
-  auto cu = ComputeUnitCore::create("flat_ds_wait_cu", config, &memory, &l2);
-  auto *wf = cu->dispatch_wf(0, 0x100, 128, 32);
-  ASSERT_NE(wf, nullptr);
-  wf->set_lds_size(64);
-
-  auto make_state = [](bool is_load) {
-    auto state = std::make_unique<VectorMemState>(LOCAL_MEM);
-    state->is_load = is_load;
-    state->exec_mask = state->lane_mask = 1;
-    state->elem_size = 4;
-    state->num_elems = 1;
-    state->per_lane_addr[0] = 8;
-    return state;
-  };
-
-  Instruction flat("flat_store_dword", nullptr);
-  flat.set_data(make_state(false));
-  cu->track_memory_wait(flat, *wf, 1);
-  wf->pc += 4;
-
-  Instruction ds("ds_read_b32", nullptr);
-  ds.set_data(make_state(true));
-  cu->track_memory_wait(ds, *wf);
-  EXPECT_EQ(cu->memory_wait_diagnostic_count(), 1u);
 }
 ```
