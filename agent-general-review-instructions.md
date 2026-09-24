@@ -10,11 +10,35 @@ from private repos or internal branches.
 
 ## Process
 
-Check out the PR branch, build it, and experiment with it. If you have
-ideas for improving the code, try them locally to confirm they work
-before suggesting them. The best review makes it very clear what needs
-to be done to get the PR to a state you like, without writing the code
-for the author.
+Check out the PR branch, record the reviewed head commit, build it, and
+experiment with it. Every review must also have a local branch based on that
+exact commit, for example `review/prNNNN-suggestions`. Preserve the PR branch
+and unrelated work; make review changes on the accompanying branch.
+
+Implement findings and suggestions that have clear, bounded fixes on the
+review branch. Aim for one commit per review item, including relevant
+regression tests in the same commit. Keep commits focused and suitable for
+individual inspection or cherry-picking; explain dependencies between commits
+when they matter. Local branch creation, edits, and commits are part of the
+review task and do not require a separate request.
+
+Omit implementation when a change is too significant, vague, or dependent on
+an unresolved design or policy decision. Retain the finding and explain the
+omission in the review; do not guess a product decision or make token edits
+just to create a commit. If there are no suitable changes, report the branch
+and that it has no additional commits.
+
+Validate the original finding and the corresponding change with focused
+checks. Distinguish results on the submitted PR from results on the suggestion
+branch. Near the top of the review, record the branch, base commit, and a
+commit-to-item mapping. Reference the relevant commit in each implemented
+item; the review may rely heavily on these concrete changes while explaining
+the problem and any remaining decisions. Use local commit IDs until the branch
+is published, then add usable branch/commit links.
+
+Finish with the branch name, commit mapping, validation, and omissions. Creating
+this local branch does not authorize pushing it, posting a review, or changing
+the PR; follow the session's existing authorization for network writes.
 
 ## Tone and balance
 
