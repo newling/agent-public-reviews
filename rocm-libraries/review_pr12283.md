@@ -4,8 +4,8 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Reviewed head:** `67c9d0868388b305250f3982a7bf97f8cbed9344`.
 **Review mode:** Follow-up to [the reviewer's comments](https://github.com/ROCm/rocm-libraries/pull/12283#pullrequestreview-5322347481), adding test evidence and the performance tradeoff of the proposed shared selection check.
-**Local suggestion branch:** `review/pr12283-followup-suggestions`, based on that exact head.
-**Commit mapping:** `8056c8e7ac03c73cbbdaf9f8f3bf4d3ac683fab0` implements actionable item 1. This test-only commit is local; the two implementation prototypes linked by the reviewer are already published separately.
+**Suggestion branch:** [`review/pr12283-followup-suggestions`](https://github.com/newling/rocm-libraries/tree/review/pr12283-followup-suggestions), based on that exact head.
+**Commit mapping:** [`8056c8e7ac03c73cbbdaf9f8f3bf4d3ac683fab0`](https://github.com/newling/rocm-libraries/commit/8056c8e7ac03c73cbbdaf9f8f3bf4d3ac683fab0) implements actionable item 1. The test fix and the two implementation prototypes linked by the reviewer are published on separate branches.
 
 ## Tests
 
@@ -51,4 +51,4 @@ These measurements used a Ryzen Threadripper PRO 9995WX, a synthetic gfx950 desc
 
 The shared calculation is attractive for consistency and for retaining usable candidates, but its extra selection cost should be measured through the heuristic API before choosing it on performance grounds. Resolving Stream-K settings once for both workspace and grid checks could avoid the duplicate work; that optimization is not implemented in the prototype.
 
-The local handoff is `review/pr12283-followup-suggestions`, with **`8056c8e7ac0`** for the precision test; focused checks pass and the commit is whitespace-clean. The review adds no further production changes to the two published alternatives. GPU validation, CI failure diagnosis and end-to-end selection benchmarking remain outside this follow-up.
+The published handoff is `review/pr12283-followup-suggestions`, with **`8056c8e7ac0`** for the precision test; focused checks pass and the commit is whitespace-clean. The review adds no further production changes to the two published alternatives. GPU validation, CI failure diagnosis and end-to-end selection benchmarking remain outside this follow-up.
