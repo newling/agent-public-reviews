@@ -2,7 +2,7 @@
 
 **PR reviewed:** [ROCm/rocm-libraries#12732](https://github.com/ROCm/rocm-libraries/pull/12732)
 
-**Reviewed head:** `92c4c836f8a884204b2b60303a18ba488a8a2db8`
+**Reviewed head:** [92c4c836f8a884204b2b60303a18ba488a8a2db8](https://github.com/ROCm/rocm-libraries/commit/92c4c836f8a884204b2b60303a18ba488a8a2db8)
 
 **Review date:** 2026-09-29
 
@@ -53,7 +53,7 @@ None.
 
 The shape calculation and name parser are ordinary C++ but reside in the HIP/SDMA rank header. Their tests are compiled only with fusion enabled and run through a main function that initializes a GPU. Moving these helpers into a small independent header lets their tests run without that setup.
 
-Commit `5c0d8e21f56` adds `a2a_test_config.hpp` and relocates the existing checks into one source used by both the regular `hipblaslt-test` and the new `hipblaslt-a2a-config-test`. The latter links only Google Test, supports a standalone CMake build, and is installed with the test component. Both targets include the checks when fusion is disabled. The shared world list keeps the host checks aligned with the multi-process sweep. Build instructions are in `projects/hipblaslt/clients/tests/a2a_config/README.md`.
+Commit [5c0d8e21f56](https://github.com/newling/rocm-libraries/commit/5c0d8e21f5674013df8e248062540a2fe25ed540) adds `a2a_test_config.hpp` and relocates the existing checks into one source used by both the regular `hipblaslt-test` and the new `hipblaslt-a2a-config-test`. The latter links only Google Test, supports a standalone CMake build, and is installed with the test component. Both targets include the checks when fusion is disabled. The shared world list keeps the host checks aligned with the multi-process sweep. Build instructions are in `projects/hipblaslt/clients/tests/a2a_config/README.md`.
 
 ### Dispatch to a collective-specific rank runner
 
@@ -61,7 +61,7 @@ Commit `5c0d8e21f56` adds `a2a_test_config.hpp` and relocates the existing check
 
 The new collective value validates a name but does not yet select an implementation. This works for the sole supported operation. An explicit dispatch makes the intended extension point clearer before adding the reverse operation, A2A followed by GEMM.
 
-Commit `5aa5d8059b3` keeps launcher parsing and world-size bounds in `run_rank_child()`, then switches on the parsed collective. `GemmA2A` selects `run_gemm_a2a_rank()`, which owns its argument setup, launch and validation. Unknown names retain their failure behavior. The GEMM runner body matches the submitted code apart from the renamed argument helper; no second collective or generic callback framework is introduced.
+Commit [5aa5d8059b3](https://github.com/newling/rocm-libraries/commit/5aa5d8059b34568527eb9fdbd9d8d8218b369537) keeps launcher parsing and world-size bounds in `run_rank_child()`, then switches on the parsed collective. `GemmA2A` selects `run_gemm_a2a_rank()`, which owns its argument setup, launch and validation. Unknown names retain their failure behavior. The GEMM runner body matches the submitted code apart from the renamed argument helper; no second collective or generic callback framework is introduced.
 
 ## Commentary
 
