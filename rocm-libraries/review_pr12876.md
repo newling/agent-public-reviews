@@ -12,7 +12,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 | Item | Local commit | Change |
 | --- | --- | --- |
-| Empty results | `67ca40766d0896f69c15361a6f4856c4bd216152` | Handle empty outputs before reading operands or sizing device work; document the behavior and add a regression test. |
+| Empty results | [`67ca40766d0896f69c15361a6f4856c4bd216152`](https://github.com/newling/rocm-libraries/commit/67ca40766d0896f69c15361a6f4856c4bd216152) | Handle empty outputs before reading operands or sizing device work; document the behavior and add a regression test. |
 | Stack CI numerical failure | None | Requires diagnosis on gfx950 before choosing a source change. |
 
 ## Tests
@@ -39,7 +39,7 @@ At [`clients/common/src/fast_check.cpp:1222`](https://github.com/ROCm/rocm-libra
 
 The existing `empty_buffers_launch_nothing` test covers zero-length fill/scan helpers, but never calls the result verifier with an empty output. This is a contract gap in the new helper, not evidence that one of the submitted positive-dimension YAML cases crashes.
 
-Local commit `67ca40766d0896f69c15361a6f4856c4bd216152` makes empty outputs require no operand reads or device work while preserving an existing error from the expected-value pass. Its test covers zero M, zero N and zero batch count, each with zero and nonzero K and null unused operands. The regression failed on the submitted implementation and passes with the fix. It runs in the existing pre_checkin suite.
+Local commit [`67ca40766d0896f69c15361a6f4856c4bd216152`](https://github.com/newling/rocm-libraries/commit/67ca40766d0896f69c15361a6f4856c4bd216152) makes empty outputs require no operand reads or device work while preserving an existing error from the expected-value pass. Its test covers zero M, zero N and zero batch count, each with zero and nonzero K and null unused operands. The regression failed on the submitted implementation and passes with the fix. It runs in the existing pre_checkin suite.
 
 ### Diagnose the numerical failure in the stack's batched f32 case
 

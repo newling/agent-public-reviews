@@ -4,9 +4,9 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **PR reviewed:** [ROCm/rocm-libraries#13015](https://github.com/ROCm/rocm-libraries/pull/13015)
 
-**Reviewed head:** `396f1c5175913d0ddd19eb48d12e948ad6cad96c` (2026-10-06), relative to #13013. Public repository and head; existing reviews/comments were not consulted.
+**Reviewed head:** [`396f1c5175913d0ddd19eb48d12e948ad6cad96c`](https://github.com/ROCm/rocm-libraries/commit/396f1c5175913d0ddd19eb48d12e948ad6cad96c) (2026-10-06), relative to #13013. Public repository and head; existing reviews/comments were not consulted.
 
-**Local review branch:** `review/pr13015-suggestions-20261006`, based on that head. `7cafd4076b0` bounds bias-gradient reductions; `5f453a7453bd` rejects fractional clamp bounds and initializes the optional amax result to NaN until a valid check completes.
+**Local review branch:** `review/pr13015-suggestions-20261006`, based on that head. [`7cafd4076b0`](https://github.com/newling/rocm-libraries/commit/7cafd4076b0e3e228561546772003e0a7d277827) bounds bias-gradient reductions; [`5f453a7453bd`](https://github.com/newling/rocm-libraries/commit/5f453a7453bd0e495460e7b1b93733678f80c100) rejects fractional clamp bounds and initializes the optional amax result to NaN until a valid check completes.
 
 ## Tests
 
@@ -26,13 +26,13 @@ Keeping fast_check-only variants active where the legacy CPU reference is broken
 
 In `projects/hipblaslt/clients/common/src/fast_check.cpp`, `fast_check_bias_gradient` (submitted line 1937) sums values into int64 without checking whether the GPU reduction is exact. The GEMM bound cannot provide that guarantee: if B is zero, its bound is zero even when a row of A is {2^24, 1, -2^24}. In f32, the BGRADA sum then depends on reduction order. The submitted helper accepts an exact sum of 1, and would call a legitimate differently ordered result wrong. Sufficiently large reductions can also overflow its int64 accumulator.
 
-Commit `7cafd4076b0` independently bounds the absolute sum of each gradient vector before accumulating it, and refuses non-integer or inexact inputs with a configuration explanation. Its regression covers both gradient sources with a zero opposite operand. Existing small exact reductions still pass.
+Commit [`7cafd4076b0`](https://github.com/newling/rocm-libraries/commit/7cafd4076b0e3e228561546772003e0a7d277827) independently bounds the absolute sum of each gradient vector before accumulating it, and refuses non-integer or inexact inputs with a configuration explanation. Its regression covers both gradient sources with a zero opposite operand. Existing small exact reductions still pass.
 
 ### Refuse fractional clamp bounds in the integer checker
 
 In `fast_check_activation_device` in the same file (submitted line 1837), clamp bounds are applied as doubles before output rounding, while the kernel receives compute-type arguments. With an upper bound of 0.1 and scaleD=9, f32 clamp then multiplication produces a different value from rounding the double product once. The submitted verifier reports correct f32 arithmetic as an output mismatch, printing expected 0.9 and got 0.9.
 
-Commit `5f453a7453bd` rejects non-integer clamp bounds in both matmul preflight (`clients/common/include/testing_matmul.hpp`, `fast_check_unsupported_reason`) and the direct helper, consistent with the integer-only contract. The regression reconstructs the two-stage f32 result and requires a configuration refusal. The optional amax value starts as NaN so an early refusal or copy failure cannot leave a stale numeric result.
+Commit [`5f453a7453bd`](https://github.com/newling/rocm-libraries/commit/5f453a7453bd0e495460e7b1b93733678f80c100) rejects non-integer clamp bounds in both matmul preflight (`clients/common/include/testing_matmul.hpp`, `fast_check_unsupported_reason`) and the direct helper, consistent with the integer-only contract. The regression reconstructs the two-stage f32 result and requires a configuration refusal. The optional amax value starts as NaN so an early refusal or copy failure cannot leave a stale numeric result.
 
 ## Suggestions
 
