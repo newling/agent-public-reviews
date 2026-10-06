@@ -1,0 +1,10 @@
+diff --git a/projects/hipblaslt/TESTING.md b/projects/hipblaslt/TESTING.md
+index e2e3e2d48db..a41f6b0a429 100644
+--- a/projects/hipblaslt/TESTING.md
++++ b/projects/hipblaslt/TESTING.md
+@@ -766,5 +766,4 @@ the sanitizer runtime on real hardware.
+ | --- | --- | --- | --- |
+ | **HOST_ASAN** (host-side AddressSanitizer) | Host-side heap and stack overflows, use-after-free, and leaks (via LeakSanitizer) in the library and client code | Every PR touching hipBLASLt, gfx90a | **Yes** |
+-| **HOST_ASAN** | Same, second architecture | Opt-in via the `ci:asan` PR label, gfx942 | No, explicitly non-blocking |
+ | **Full ASAN** (host plus device instrumentation) | Adds device-side memory errors in kernels | TheRock nightly and manual dispatch, gfx94X | No |
+ | **TSAN** | Data races | **Nowhere.** Build options exist; no CI lane uses them | No |

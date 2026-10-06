@@ -2,9 +2,9 @@
 
 **PR reviewed:** [ROCm/rocm-libraries#13126](https://github.com/ROCm/rocm-libraries/pull/13126)
 
-Reviewed head: `c92deaa96c93427a93340ae2768ce90c9eafdafa` (October 6, 2026). The repository and PR head are public. The review is independent of existing reviews and discussion on this PR.
+Reviewed head: [c92deaa96c93](https://github.com/ROCm/rocm-libraries/commit/c92deaa96c93427a93340ae2768ce90c9eafdafa) (October 6, 2026). The repository and PR head are public. The review is independent of existing reviews and discussion on this PR.
 
-Review branch: `review/pr13126-suggestions`, based on that exact head. Commit mapping: `1b0e5f23d2a0bb1a169f603ea5d83edf576409d7` implements suggestion S1, removing one obsolete documentation row.
+Review branch: `review/pr13126-suggestions`, based on that exact head. Commit mapping: [1b0e5f23d2a0](patches/pr13126-1b0e5f23d2a.patch) implements suggestion S1, removing one obsolete documentation row. Its link opens the exact patch from the unpublished local commit.
 
 ## Tests
 
@@ -32,7 +32,7 @@ None that block approval. The coverage consequences and a pre-existing staged-co
 
 [projects/hipblaslt/TESTING.md:768](https://github.com/ROCm/rocm-libraries/blob/c92deaa96c93427a93340ae2768ce90c9eafdafa/projects/hipblaslt/TESTING.md#L768) advertises a second host-ASAN architecture selected by the `ci:asan` label. The [focused workflow's matrix](https://github.com/ROCm/rocm-libraries/blob/c92deaa96c93427a93340ae2768ce90c9eafdafa/.github/workflows/hipblaslt-asan-ci.yml#L48) contains only gfx90a and has no corresponding label expansion. Remove this row so readers do not mistake it for additional runtime coverage. This statement predates the PR and is a minor correction in the section already being edited.
 
-Implemented in local commit `1b0e5f23d2a0bb1a169f603ea5d83edf576409d7`. The correction is a one-line deletion; comparison against the workflow and `git diff --check` pass. Root pre-commit selects no hooks for this documentation file.
+Implemented in local commit [1b0e5f23d2a0](patches/pr13126-1b0e5f23d2a.patch). The correction is a one-line deletion; comparison against the workflow and `git diff --check` pass. Root pre-commit selects no hooks for this documentation file.
 
 ## Commentary
 
@@ -85,6 +85,6 @@ The placement and ownership of full-ASAN runtime coverage need an explicit follo
 
 ## Branch and validation handoff
 
-`review/pr13126-suggestions` contains only S1 (`1b0e5f23d2a0bb1a169f603ea5d83edf576409d7`) beyond reviewed head `c92deaa96c93427a93340ae2768ce90c9eafdafa`. The submitted PR branch is preserved. The worktree is clean, and the four PR files have no overlapping changes on fetched `develop` at `d7b6c31cb268642a7b8f97cc202fa418ea3d4190` since the merge base.
+`review/pr13126-suggestions` contains only S1 ([1b0e5f23d2a0](patches/pr13126-1b0e5f23d2a.patch)) beyond reviewed head [c92deaa96c93](https://github.com/ROCm/rocm-libraries/commit/c92deaa96c93427a93340ae2768ce90c9eafdafa). The submitted PR branch is preserved. The worktree is clean, and the four PR files have no overlapping changes on fetched `develop` at [d7b6c31cb268](https://github.com/ROCm/rocm-libraries/commit/d7b6c31cb268642a7b8f97cc202fa418ea3d4190) since the merge base.
 
 Build and behavior validation above applies to the submitted code; the suggestion changes documentation only. No further product changes were warranted. Full-ASAN runner scheduling and expanded staged-consumer coverage were not implemented because they require separate coverage/resource decisions. The suggestion branch remains local. Publishing this document does not submit a GitHub PR review or approval, change the PR description, or trigger additional CI.
