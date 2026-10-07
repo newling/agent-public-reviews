@@ -6,6 +6,8 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Suggestion branch:** [review/pr55-suggestions](https://github.com/newling/rocjitsu-test-corpus/tree/review/pr55-suggestions), tip [`9d7690e`](https://github.com/newling/rocjitsu-test-corpus/commit/9d7690ef3f4890ad014ccc544e46b543bd456026).
 
+**Scope recommendation:** [Keep this PR's manifest focused on assembly regeneration](#c-keep-the-manifest-focused-on-assembly-regeneration). The mutation metadata and its findings should accompany the mutation generator in a follow-up PR.
+
 This review corrects the initial assessment of the available mutation contract and adds focused runtime and failure-path checks. The public PR head is unchanged. The public [companion engine at `e3b6bab`](https://github.com/ROCm/rocjitsu-test-corpus/commit/e3b6bab0767ccb5b75950db73e84adbdd8d083a3) was inspected to establish how these artifacts and metadata are consumed; that engine is outside this PR's diff. The initial PR metadata response inadvertently included an existing GitHub review; no further review comments or threads were consulted. Findings below were checked directly against source and local experiments.
 
 | Review item | Commits | Implementation |
@@ -17,6 +19,7 @@ This review corrects the initial assessment of the available mutation contract a
 | 5 | None | Missing harmless-mutation exemptions require a target-aware representation shared with the companion consumer. |
 | 6 | [`1179ded`](https://github.com/newling/rocjitsu-test-corpus/commit/1179ded737d875b8f32cb624e6110dc48e91f514) | Preserve compiler diagnostics and correct the missing-header skip claim; regression test. |
 | Suggestion A | [`f24ce9f`](https://github.com/newling/rocjitsu-test-corpus/commit/f24ce9fad2e0dbd2f990e0074ada0b0c5dbab73b), [`9d7690e`](https://github.com/newling/rocjitsu-test-corpus/commit/9d7690ef3f4890ad014ccc544e46b543bd456026) | Preserve quoted compiler flags and reject malformed quoting before compilation; regression tests. |
+| Suggestion C | None | Proposed scope reduction: retain the assembly inventory here and introduce mutation metadata with its consumer. |
 
 The two commits in item 1 are sequential, as are the two in suggestion A. Item 2's tests extend the file introduced by item 1. The four commits after the first review were added without rewriting the earlier branch history.
 
@@ -39,6 +42,8 @@ The original `--check --target gfx950` run compiled every selected kernel with A
 The PR pins a complete kernel/target assembly inventory and provides explicit regeneration. This makes changes to the instruction streams visible in version control and records useful compiler provenance. This pass also examines whether the metadata gives consumers reliable mutation expectations, using both instruction dependencies and executable controls. Stable instruction text is useful, but each scored mutation still needs a justified expectation.
 
 ## Actionable items
+
+Items 3–5 concern mutation metadata. If the scope reduction in [Suggestion C](#c-keep-the-manifest-focused-on-assembly-regeneration) is adopted, address them in the follow-up PR that introduces that metadata and its consumer. Their evidence and existing fixes are retained below; they apply here if the full manifest remains in this PR.
 
 ### 1. Preserve existing assembly when compilation fails
 
@@ -68,7 +73,7 @@ Commit [`3c02f39`](https://github.com/newling/rocjitsu-test-corpus/commit/3c02f3
 
 Locations: [`corpus/race/cases.toml:15–23`](https://github.com/ROCm/rocjitsu-test-corpus/blob/40fe53933d61cbd26c46d26ece3eed44ea37efb5/corpus/race/cases.toml#L15-L23) and [`:252–260`](https://github.com/ROCm/rocjitsu-test-corpus/blob/40fe53933d61cbd26c46d26ece3eed44ea37efb5/corpus/race/cases.toml#L252-L260).
 
-**Correction to the first review:** treating the ordinal convention as an unresolved design choice was too strong. The public companion's `find_wait_sites` assigns zero-based ordinals after excluding `s_wait_xcnt`, with combined waits counted as one instruction. Running it against the pinned WMMA artifact selects the intended epilogue at line 148 for `ordinal = 3`. The existing value is correct. The missing piece in this PR is documentation of that established rule.
+**Correction to the first review:** treating the ordinal convention as an unresolved design choice was too strong. The public companion's `find_wait_sites` assigns zero-based ordinals after excluding `s_wait_xcnt`, with combined waits counted as one instruction. Running it against the pinned WMMA artifact selects the intended epilogue at line 148 for `ordinal = 3`. The existing value is correct. The metadata should document that established rule when it is introduced.
 
 The companion also already consults surrounding instructions when proposing resource tags, and it does not read `waits` as a mutation-selection filter. The first review should have acknowledged that implementation rather than implying those choices were wholly absent. The general limitation remains: gfx950 `lgkmcnt` covers scalar loads and LDS operations, so `access` plus counter alone cannot establish the raced resource.
 
@@ -103,6 +108,18 @@ Location: [`corpus/race/scripts/regenerate_asm.py:212`](https://github.com/ROCm/
 ### B. Correct the documented command and compiler requirement
 
 The PR description names the nonexistent `corpus/race/scripts/regenerate.py`; both examples should use `regenerate_asm.py`. Also, the script's opening docstring calls regeneration the only part that needs a HIP compiler. The companion still invokes `hipcc --cuda-host-only` and links host objects to the pinned device image, as exercised by the runtime probe. Commit [`75c3907`](https://github.com/newling/rocjitsu-test-corpus/commit/75c3907701e20ce1da84db47035a769082a32681) corrects that source docstring. No replacement PR description was authored.
+
+### C. Keep the manifest focused on assembly regeneration
+
+Locations: [`corpus/race/cases.toml:1–42`](https://github.com/ROCm/rocjitsu-test-corpus/blob/40fe53933d61cbd26c46d26ece3eed44ea37efb5/corpus/race/cases.toml#L1-L42) and [`corpus/race/scripts/regenerate_asm.py:144–179`](https://github.com/ROCm/rocjitsu-test-corpus/blob/40fe53933d61cbd26c46d26ece3eed44ea37efb5/corpus/race/scripts/regenerate_asm.py#L144-L179).
+
+Please reduce `cases.toml` in this PR to the kernel and target inventory needed for assembly regeneration. Keep the `[corpus]` schema/name header and each case's `id`, `kernel`, and `requires`. Introduce `mutate`, `access`, `hazard`, `waits`, `[[case.exempt]]`, and the associated mutation descriptions and documentation alongside the mutation generator, so those expectations can be reviewed and tested together with their consumer.
+
+The regeneration script validates the schema and reads only `kernel` and `requires` from each case; stable `id` values can remain useful to identify the inventory. Keeping this minimal manifest, the pinned assembly, the regeneration script, and inventory checks together leaves a self-contained assembly PR. The companion can then extend the same file, avoiding a second kernel/target inventory. Preserve useful regeneration prerequisites, such as the rocWMMA include-path instructions, with the assembly tooling.
+
+The current file also defines mutation and scoring behavior whose correctness depends on the companion implementation. Review the counter-coverage claims, per-mutant hazard labels, ordinal rules, and target-aware exemptions with that implementation and its behavioral tests. The findings in items 3–5 remain relevant to that follow-up; assembly regeneration can be assessed independently of those decisions.
+
+This is a proposed split across the PR stack. The existing suggestion branch retains the submitted manifest structure and its validated fixes; it does not implement the split or change the companion. The metadata-specific fixes and tests should accompany the fields if they move to the follow-up.
 
 ## Commentary
 
