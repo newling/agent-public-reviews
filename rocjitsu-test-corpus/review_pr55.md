@@ -2,7 +2,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **PR reviewed:** [ROCm/rocjitsu-test-corpus#55](https://github.com/ROCm/rocjitsu-test-corpus/pull/55)
 
-**Reviewed head and suggestion-branch base:** `40fe53933d61cbd26c46d26ece3eed44ea37efb5`.
+**Reviewed head and suggestion-branch base:** [`40fe53933d61cbd26c46d26ece3eed44ea37efb5`](https://github.com/ROCm/rocjitsu-test-corpus/commit/40fe53933d61cbd26c46d26ece3eed44ea37efb5).
 
 **Suggestion branch:** [review/pr55-suggestions](https://github.com/newling/rocjitsu-test-corpus/tree/review/pr55-suggestions), tip [`9d7690e`](https://github.com/newling/rocjitsu-test-corpus/commit/9d7690ef3f4890ad014ccc544e46b543bd456026).
 
@@ -24,7 +24,7 @@ The two commits in item 1 are sequential, as are the two in suggestion A. Item 2
 
 All focused Python regressions pass on the updated branch; selected gfx950 baselines and mutation controls execute successfully with the race plugin; the first review's assembly/link validation of all 37 unchanged pinned files remains applicable.
 
-The final Python tests were copied onto both the submitted source and the previous suggestion tip. The submitted source reproduces the preservation, drift, coverage, diagnostic, and flag-parsing failures; the previous suggestion tip reproduces the newly added diagnostic and flag-parsing failures. Test sources are committed in `tests/test_race_regenerate_asm.py` and `tests/test_race_manifest.py` and run with:
+The final Python tests were copied onto both the submitted source and the previous suggestion tip. The submitted source reproduces the preservation, drift, coverage, diagnostic, and flag-parsing failures; the previous suggestion tip reproduces the newly added diagnostic and flag-parsing failures. Test sources are committed in [`tests/test_race_regenerate_asm.py`](https://github.com/newling/rocjitsu-test-corpus/blob/9d7690ef3f4890ad014ccc544e46b543bd456026/tests/test_race_regenerate_asm.py) and [`tests/test_race_manifest.py`](https://github.com/newling/rocjitsu-test-corpus/blob/9d7690ef3f4890ad014ccc544e46b543bd456026/tests/test_race_manifest.py) and run with:
 
 ```bash
 python -m pytest tests/test_race_regenerate_asm.py tests/test_race_manifest.py -q
