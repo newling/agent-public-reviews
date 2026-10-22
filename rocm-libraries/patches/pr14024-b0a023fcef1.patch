@@ -1,0 +1,88 @@
+diff --git a/projects/hipblaslt/clients/bench/README.md b/projects/hipblaslt/clients/bench/README.md
+index d0e79e2d4dd..b95cc93a411 100644
+--- a/projects/hipblaslt/clients/bench/README.md
++++ b/projects/hipblaslt/clients/bench/README.md
+@@ -125,9 +125,9 @@ Run fp32 GEMM with validation
+ - `norm_error` is the Frobenius norm of the difference divided by the Frobenius norm of the reference, summed over batches and gemms. It averages over each whole matrix, so a few wrong elements in a large result can still give a small value.
+ - `atol` and `rtol` come from an element-wise check. It tries the pairs 1e-6, 1e-5, ..., 1e-1 for each, tightest `atol` first, and reports the first pair under which every element satisfies `|reference - result| <= atol + rtol * |result|`. With several batches, or the gemms of a grouped GEMM, the columns show the loosest pair any one matrix needed. `failed` means at least one element is outside even `atol 0.1 + rtol 0.1 * |result|`.
+ 
+-The norm check of D fails when any one batch's norm_error reaches the limit for the output type, the same limit `hipblaslt-test` uses (1e-5 for f32, 0.01 for f16, 0.1 for bf16). The limit applies to each batch, not to the sum in the `norm_error` column. When a check fails, the bench prints one line per failing gemm to stderr:
++The norm check of D fails when any one batch's norm_error reaches the same limit `hipblaslt-test` uses for the GEMM. The limit is the largest tolerance among the output and both input types (1e-5 for f32, 0.01 for f16, 0.1 for bf16); f32 output with `c_f32_fast_bf16_r` uses at least 0.5. For example, f16 inputs with f32 output use 0.01. The limit applies to each batch, not to the sum in the `norm_error` column. When a check fails, the bench prints one line per failing gemm to stderr:
+ ```
+-norm check failed for D of gemm 0: batch 2 has norm_error 0.408248, at or above the f32_r limit of 1e-05
++norm check failed for D of gemm 0: batch 2 has norm_error 0.408248, at or above the GEMM limit of 1e-05
+ allclose check failed for D of gemm 0: 1 of 96 elements are outside atol 0.1 + rtol 0.1 * |result|; the worst is batch 2, row 5, column 0: result 7, reference 2
+ ```
+ 
+diff --git a/projects/hipblaslt/clients/common/include/testing_matmul.hpp b/projects/hipblaslt/clients/common/include/testing_matmul.hpp
+index fad63d693f4..a0f582bd05a 100644
+--- a/projects/hipblaslt/clients/common/include/testing_matmul.hpp
++++ b/projects/hipblaslt/clients/common/include/testing_matmul.hpp
+@@ -1489,8 +1489,7 @@ void check(hipStream_t                   stream,
+                 hipblaslt_bench_options::verification_failures()++;
+                 hipblaslt_cerr << "norm check failed for D of gemm " << gemmIdx << ": batch "
+                                << worst_batch << " has norm_error " << worst_error
+-                               << ", at or above the " << hip_datatype_to_string(To) << " limit of "
+-                               << limit << std::endl;
++                               << ", at or above the GEMM limit of " << limit << std::endl;
+             }
+             if(batchMode != HIPBLASLT_BATCH_MODE_POINTER_ARRAY)
+             {
+diff --git a/projects/hipblaslt/clients/tests/src/matmul_gtest.cpp b/projects/hipblaslt/clients/tests/src/matmul_gtest.cpp
+index e4dc60340c5..3f24d888bf9 100644
+--- a/projects/hipblaslt/clients/tests/src/matmul_gtest.cpp
++++ b/projects/hipblaslt/clients/tests/src/matmul_gtest.cpp
+@@ -92,7 +92,7 @@ namespace
+             return static_cast<float*>(buffers[0].buf())[batch * m * n + i];
+         }
+ 
+-        int64_t run()
++        int64_t run(hipDataType input_type = HIP_R_32F)
+         {
+             Arguments arg{};
+             arg.init();
+@@ -101,7 +101,7 @@ namespace
+             arg.allclose_check    = 1;
+             arg.norm_check_assert = false;
+             arg.compute_type      = HIPBLAS_COMPUTE_32F;
+-            arg.a_type = arg.b_type = HIP_R_32F;
++            arg.a_type = arg.b_type = input_type;
+ 
+             const uint32_t               gemm_count = 1;
+             std::vector<HipDeviceBuffer> no_device;
+@@ -189,6 +189,22 @@ namespace
+         EXPECT_DOUBLE_EQ(d.norm_error, last);
+     }
+ 
++    TEST(BenchVerify, smoke_MixedPrecisionNormUsesGemmTolerance)
++    {
++        BenchVerifyD d(8, 4, 1, HIPBLASLT_BATCH_MODE_STRIDED);
++        for(int64_t i = 0; i < 32; i++)
++            d.at(d.result, 0, i) *= 1.001f;
++        EXPECT_EQ(d.run(HIP_R_16F), 0);
++        EXPECT_GT(d.norm_error, norm_tolerance(HIP_R_32F));
++        EXPECT_DOUBLE_EQ(norm_tolerance(HIP_R_32F, HIPBLAS_COMPUTE_32F, HIP_R_16F, HIP_R_16F),
++                         0.01);
++        EXPECT_DOUBLE_EQ(norm_tolerance(HIP_R_16F, HIPBLAS_COMPUTE_32F, HIP_R_16BF, HIP_R_16BF),
++                         0.1);
++        EXPECT_DOUBLE_EQ(
++            norm_tolerance(HIP_R_32F, HIPBLAS_COMPUTE_32F_FAST_16BF, HIP_R_32F, HIP_R_32F),
++            0.5);
++    }
++
+     TEST(PreswizzledScaleLayout, smoke_rejects_nontransposed_A)
+     {
+         Arguments arg{};
+diff --git a/projects/hipblaslt/docs/conceptual/hipblaslt-clients.rst b/projects/hipblaslt/docs/conceptual/hipblaslt-clients.rst
+index 8fc84b7ed10..175deeea7cc 100644
+--- a/projects/hipblaslt/docs/conceptual/hipblaslt-clients.rst
++++ b/projects/hipblaslt/docs/conceptual/hipblaslt-clients.rst
+@@ -61,7 +61,7 @@ For example, to run ``fp32`` GEMM with validation, use this command:
+ * ``norm_error`` is the Frobenius norm of the difference divided by the Frobenius norm of the reference, summed over batches and gemms. It averages over each whole matrix, so a few wrong elements in a large result can still give a small value.
+ * ``atol`` and ``rtol`` come from an element-wise check. It tries the pairs 1e-6, 1e-5, ..., 1e-1 for each, tightest ``atol`` first, and reports the first pair under which every element satisfies ``|reference - result| <= atol + rtol * |result|``. With several batches, or the gemms of a grouped GEMM, the columns show the loosest pair any one matrix needed. ``failed`` means at least one element is outside even ``atol 0.1 + rtol 0.1 * |result|``; the bench then also prints the number of such elements and the worst one to stderr.
+ 
+-The norm check of D fails when any one batch's ``norm_error`` reaches the limit for the output type, the same limit ``hipblaslt-test`` uses (1e-5 for f32, 0.01 for f16, 0.1 for bf16), and the bench then prints the batch and its error to stderr. By default the exit code is 0 whether or not a check fails. With ``--verify_strict``, the bench exits with code 2 when any check of D failed. Only the first launch of each solution is compared with the reference; the launches timed by ``--iters`` and ``--cold_iters`` are not checked.
++The norm check of D fails when any one batch's ``norm_error`` reaches the same limit ``hipblaslt-test`` uses for the GEMM. The limit is the largest tolerance among the output and both input types (1e-5 for f32, 0.01 for f16, 0.1 for bf16); f32 output with ``c_f32_fast_bf16_r`` uses at least 0.5. For example, f16 inputs with f32 output use 0.01. The bench then prints the failing batch and its error to stderr. By default the exit code is 0 whether or not a check fails. With ``--verify_strict``, the bench exits with code 2 when any check of D failed. Only the first launch of each solution is compared with the reference; the launches timed by ``--iters`` and ``--cold_iters`` are not checked.
+ 
+ For more information, run the command with the ``--help`` option. The output of this command is shown below.
+ 

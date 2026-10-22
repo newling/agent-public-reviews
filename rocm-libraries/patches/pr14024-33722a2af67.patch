@@ -1,0 +1,132 @@
+diff --git a/projects/hipblaslt/clients/bench/src/client.cpp b/projects/hipblaslt/clients/bench/src/client.cpp
+index 51886110c78..f517c2ee16d 100644
+--- a/projects/hipblaslt/clients/bench/src/client.cpp
++++ b/projects/hipblaslt/clients/bench/src/client.cpp
+@@ -72,6 +72,8 @@ int run_bench_test(Arguments&         arg,
+     // disable unit_check in client benchmark, it is only used in gtest unit test
+     arg.unit_check = 0;
+ 
++    hipblaslt_bench_options::apply_strict_verification(arg);
++
+     // enable timing check,otherwise no performance data collected
+     arg.timing = 1;
+ 
+@@ -1315,7 +1317,7 @@ try
+         throw std::invalid_argument(
+             "Valid value for --skip_slow_solution_ratio is in range (0.0 ~ 1.0).");
+ 
+-    if(verify || ulp || hipblaslt_bench_options::verify_strict())
++    if(verify || ulp)
+     {
+         arg.norm_check     = 1;
+         arg.allclose_check = 1;
+diff --git a/projects/hipblaslt/clients/common/include/hipblaslt_bench_options.hpp b/projects/hipblaslt/clients/common/include/hipblaslt_bench_options.hpp
+index f454142f524..1faafc3695d 100644
+--- a/projects/hipblaslt/clients/common/include/hipblaslt_bench_options.hpp
++++ b/projects/hipblaslt/clients/common/include/hipblaslt_bench_options.hpp
+@@ -9,6 +9,8 @@
+ #include <cstdint>
+ #include <string>
+ 
++struct Arguments;
++
+ // Process-wide CLI knobs that hipblaslt-bench reads directly instead of through
+ // the YAML-backed Arguments struct.
+ //
+@@ -44,4 +46,5 @@ namespace hipblaslt_bench_options
+     bool&        verify_strict();
+     int64_t&     verification_failures();
+     int          verification_exit_code(int ret);
++    void         apply_strict_verification(Arguments& arg);
+ }
+diff --git a/projects/hipblaslt/clients/common/src/hipblaslt_bench_options.cpp b/projects/hipblaslt/clients/common/src/hipblaslt_bench_options.cpp
+index c95def14171..3608907bdde 100644
+--- a/projects/hipblaslt/clients/common/src/hipblaslt_bench_options.cpp
++++ b/projects/hipblaslt/clients/common/src/hipblaslt_bench_options.cpp
+@@ -5,6 +5,7 @@
+  *
+  *******************************************************************************/
+ #include "hipblaslt_bench_options.hpp"
++#include "hipblaslt_arguments.hpp"
+ #include <algorithm>
+ #include <cctype>
+ #include <stdexcept>
+@@ -106,4 +107,15 @@ namespace hipblaslt_bench_options
+             return ret;
+         return 2;
+     }
++
++    void apply_strict_verification(Arguments& arg)
++    {
++        if(verify_strict())
++        {
++            arg.norm_check     = 1;
++            arg.allclose_check = 1;
++            // Let the benchmark collect every failure before choosing its exit code.
++            arg.norm_check_assert = false;
++        }
++    }
+ }
+diff --git a/projects/hipblaslt/clients/tests/unit/bench_verify_gtest.cpp b/projects/hipblaslt/clients/tests/unit/bench_verify_gtest.cpp
+index e8b3b400439..6be55119038 100644
+--- a/projects/hipblaslt/clients/tests/unit/bench_verify_gtest.cpp
++++ b/projects/hipblaslt/clients/tests/unit/bench_verify_gtest.cpp
+@@ -4,6 +4,7 @@
+ // Host-only unit tests for the --verify_strict exit-code rule in hipblaslt_bench_options.
+ // See README.md in this directory for the HostUnit/smoke_ naming.
+ 
++#include "hipblaslt_arguments.hpp"
+ #include "hipblaslt_bench_options.hpp"
+ 
+ #include <gtest/gtest.h>
+@@ -59,4 +60,50 @@ namespace
+         EXPECT_EQ(exit_code(true, 0, -1), -1);
+         EXPECT_EQ(exit_code(false, 0, 1), 1);
+     }
++
++    TEST_F(HostUnitBenchVerify, smoke_StrictEnablesChecksForDatafileArguments)
++    {
++        Arguments arg{};
++        arg.init();
++        arg.norm_check                           = 0;
++        arg.allclose_check                       = 0;
++        hipblaslt_bench_options::verify_strict() = true;
++
++        hipblaslt_bench_options::apply_strict_verification(arg);
++
++        EXPECT_EQ(arg.norm_check, 1);
++        EXPECT_EQ(arg.allclose_check, 1);
++        EXPECT_FALSE(arg.norm_check_assert);
++    }
++
++    TEST_F(HostUnitBenchVerify, smoke_StrictCollectsFailuresInsteadOfAsserting)
++    {
++        Arguments arg{};
++        arg.init();
++        arg.norm_check                           = 1;
++        arg.norm_check_assert                    = true;
++        hipblaslt_bench_options::verify_strict() = true;
++
++        hipblaslt_bench_options::apply_strict_verification(arg);
++
++        EXPECT_EQ(arg.norm_check, 1);
++        EXPECT_EQ(arg.allclose_check, 1);
++        EXPECT_FALSE(arg.norm_check_assert);
++    }
++
++    TEST_F(HostUnitBenchVerify, smoke_DefaultPreservesDatafileVerificationOptions)
++    {
++        Arguments arg{};
++        arg.init();
++        arg.norm_check                           = 1;
++        arg.allclose_check                       = 0;
++        arg.norm_check_assert                    = true;
++        hipblaslt_bench_options::verify_strict() = false;
++
++        hipblaslt_bench_options::apply_strict_verification(arg);
++
++        EXPECT_EQ(arg.norm_check, 1);
++        EXPECT_EQ(arg.allclose_check, 0);
++        EXPECT_TRUE(arg.norm_check_assert);
++    }
+ }
