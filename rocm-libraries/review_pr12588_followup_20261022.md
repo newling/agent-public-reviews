@@ -17,7 +17,7 @@ On gfx1201, with a device library generated from this tree's gfx1201 fp16 and fp
 
 The new Windows-lane link failure described below is reproduced from the CI log only; no Windows build was run locally. The mutation check for the replacement test (removing the XCC assignment) fails it as intended. Whitespace and clang-format checks pass on the branch. `tensile_host.cpp` was also compiled with fused all-to-all enabled to check the second commit. Fusion-enabled execution, multi-rank behavior, block-scaled (MX) problems and FP8 were not run.
 
-CI at this head: the [Windows gfx110X math-libs build](https://github.com/ROCm/rocm-libraries/actions/runs/39723423880/job/119676485777) fails, the hipBLASLt project coverage check fails, the FFM gfx1250 tensilelite status fails, and the [gfx1250-strict job](https://github.com/ROCm/rocm-libraries/actions/runs/39723422556/job/119641943456) was still pending. The Linux builds, pre-commit, clang-tidy and the ASAN lanes pass. Only the Windows failure was investigated; its cause is the first item below.
+CI at this head: the [Windows gfx110X math-libs build](https://github.com/ROCm/rocm-libraries/actions/runs/39723423880/job/119676485777) fails, the hipBLASLt project coverage check fails, the FFM gfx1250 tensilelite status fails, and the [gfx1250-strict job](https://github.com/ROCm/rocm-libraries/actions/runs/39723422556/job/119641943456) was still pending. The Linux builds, pre-commit, clang-tidy and the ASAN lanes pass. Only the Windows failure was investigated; its cause is the first item below. The four suggestions on concurrency and run-to-run choice were established from the source only; nothing was run for them.
 
 ## Summary
 
@@ -62,6 +62,24 @@ The comment at [tensile_host.cpp:4487](https://github.com/ROCm/rocm-libraries/bl
 ### Add a numerical gradient case
 
 The gradient epilogue's auxiliary input is now seeded and its layouts are covered by scratch-plan and copy tests, but no test runs a gradient epilogue through tune mode and compares the output. The copy tests establish that the input is prepared, not that the derivative kernel produces the right result from it. A small DGELU case in a device lane would close that.
+
+### Say whether several processes sharing one cache path are supported
+
+Inside one process the tuning gate holds. One lock serialises all tuning ([tensile_host.cpp:5607](https://github.com/ROCm/rocm-libraries/blob/bb3a59b8adc6c41f1129ad075c6b0dba005329a3/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/tensile_host.cpp#L5607)), a thread that waited re-checks the cache under it, and a failed attempt is latched, so a duplicated shape launches the first copy's winner whichever copy arrives first. The lock does not span processes. The cache file is read once per process (`getContractionProblemsFromFile` in `UserDrivenTuningParser.cpp`) and tune mode does not re-read it before searching. If rank B has loaded the file before rank A finishes a shape, B tunes it again and appends a second row (`appendTuningRow` in `TuningCacheStore.cpp`, guarded by a process-local mutex only). A later process keeps both rows and replays the first supported one in file order, so the kernel it runs reflects which process appended first, not which was faster. Multi-GPU jobs normally start one process per GPU with the same environment, so on an empty cache every rank meets the same new shapes together, and the fused all-to-all decline ("the ranks do not coordinate a search") shows multi-rank launches are in view.
+
+Either document tuning as a single-process step followed by multi-process replay, which needs no code, or re-read the file under the tuning lock before searching, guard the append across processes, and let the loader keep the fastest recorded row per key. This is established from the source; no two-process run was done.
+
+### Decide how a shape tuned under one workspace allowance is treated under another
+
+The key omits the caller's workspace allowance, and replay checks it per call (`first_supported_candidate` in `rocblaslt_auxiliary.cpp`). If a shape is tuned with a large allowance and the winner needs more workspace than a later call of the same shape allows, that call finds no usable entry. A completed tune is not latched, so it searches again and replaces the stored winner. This should settle after two searches, since a smaller-workspace winner also fits the larger allowance, but which winner remains depends on which call ran first. A graph that runs the same GEMM under two allowances would meet this. A test with two calls of one shape and different allowances would show how many searches run and which row is left.
+
+### State what "the same choice" means between runs
+
+The winner is the lowest measured median. Only an exact tie keeps the earlier candidate, and the code's own comment says the pick stays unstable when leading kernels are within a couple of percent. The benchmark's skip-slow screen also drops candidates by warm-up time, and the five-minute budget makes a shape tuned or untuned depending on device speed. These are timing effects, and a persisted cache makes later runs reproducible. If first-run stability matters, requiring a minimum margin over the default or the cached winner before a row is replaced would reduce flips between near-equal kernels. The how-to could say that the first run's choice among near ties is not fixed.
+
+### Consider a per-shape lock
+
+The lock is global across shapes and devices. While one shape is tuned, every other call that needs tuning waits, including an unrelated first-time shape on another GPU, and a call that will be declined (in-place with nonzero beta, fused all-to-all, scratch over the cap) waits too, since the decline is made inside the lock. Calls whose shape already has a usable entry or is latched as failed do not take the lock and keep running, which also means they share the GPU with the measurement. A per-key lock would let independent shapes proceed. Whether that is worth it depends on whether applications run GEMMs from several threads during warm-up; a single submitting thread blocks for the search either way.
 
 ## Commentary
 
