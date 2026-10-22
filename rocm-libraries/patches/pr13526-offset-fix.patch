@@ -1,0 +1,462 @@
+diff --git a/projects/hipblaslt/clients/common/include/testing_aux_check_numerics_gemm.hpp b/projects/hipblaslt/clients/common/include/testing_aux_check_numerics_gemm.hpp
+index f350b52c288..dc4ff31196e 100644
+--- a/projects/hipblaslt/clients/common/include/testing_aux_check_numerics_gemm.hpp
++++ b/projects/hipblaslt/clients/common/include/testing_aux_check_numerics_gemm.hpp
+@@ -35,8 +35,10 @@
+ 
+ #include "hipblaslt_test.hpp"
+ 
++#include <hipblaslt/hipblaslt-ext.hpp>
+ #include <hipblaslt/hipblaslt.h>
+ 
++#include <algorithm>
+ #include <cmath>
+ #include <cstdint>
+ #include <cstdlib>
+@@ -431,13 +433,18 @@ inline void testing_aux_check_numerics_gemm(const Arguments& arg)
+     // 128x128x128 fp32 matches matmul_pointer_array_distinct_c_d_layout_smoke,
+     // which has pointer-array solutions on every architecture that runs it.
+     constexpr int kNoNanBatch = -1;
+-    auto run_pointer_array_scenario = [&](int nan_batch, uint32_t* out_reported) {
++    auto          run_pointer_array_scenario = [&](int       nan_batch,
++                                          int64_t   d_offset,
++                                          bool      prefix_nan,
++                                          bool      use_cpp,
++                                          uint32_t* out_reported) {
+         ASSERT_NE(out_reported, nullptr);
+         *out_reported = ~uint32_t(0);
+ 
+         constexpr int     M = 128, N = 128, K = 128;
+         constexpr int32_t kBatch = 3;
+         ASSERT_LT(nan_batch, kBatch);
++        ASSERT_GE(d_offset, 0);
+ 
+         hipblasLtHandle_t handle = nullptr;
+         EXPECT_HIPBLAS_STATUS(hipblasLtCreate(&handle), HIPBLAS_STATUS_SUCCESS);
+@@ -446,9 +453,15 @@ inline void testing_aux_check_numerics_gemm(const Arguments& arg)
+ 
+         std::vector<float> A_clean(M * K, 1.0f);
+         std::vector<float> A_dirty = A_clean;
+-        A_dirty[0]                 = std::numeric_limits<float>::quiet_NaN();
++        A_dirty[M - 1]             = std::numeric_limits<float>::quiet_NaN();
+         std::vector<float> B_h(K * N, 1.0f);
+ 
++        std::vector<float> D_initial(d_offset + M * N, 0.0f);
++        if(prefix_nan)
++            std::fill(D_initial.begin(),
++                      D_initial.begin() + d_offset,
++                      std::numeric_limits<float>::quiet_NaN());
++
+         std::vector<float*> hA(kBatch, nullptr), hB(kBatch, nullptr), hC(kBatch, nullptr),
+             hD(kBatch, nullptr);
+         for(int32_t b = 0; b < kBatch; ++b)
+@@ -456,7 +469,9 @@ inline void testing_aux_check_numerics_gemm(const Arguments& arg)
+             CHECK_HIP_ERROR(hipMalloc(&hA[b], sizeof(float) * M * K));
+             CHECK_HIP_ERROR(hipMalloc(&hB[b], sizeof(float) * K * N));
+             CHECK_HIP_ERROR(hipMalloc(&hC[b], sizeof(float) * M * N));
+-            CHECK_HIP_ERROR(hipMalloc(&hD[b], sizeof(float) * M * N));
++            CHECK_HIP_ERROR(hipMalloc(&hD[b], sizeof(float) * (d_offset + M * N)));
++            CHECK_HIP_ERROR(hipMemcpy(
++                hD[b], D_initial.data(), sizeof(float) * D_initial.size(), hipMemcpyHostToDevice));
+             const float* srcA = (b == nan_batch) ? A_dirty.data() : A_clean.data();
+             CHECK_HIP_ERROR(
+                 hipMemcpy(hA[b], srcA, sizeof(float) * M * K, hipMemcpyHostToDevice));
+@@ -498,6 +513,10 @@ inline void testing_aux_check_numerics_gemm(const Arguments& arg)
+                 HIPBLAS_STATUS_SUCCESS);
+         }
+ 
++        EXPECT_HIPBLAS_STATUS(hipblasLtMatrixLayoutSetAttribute(
++                                  lD, HIPBLASLT_MATRIX_LAYOUT_OFFSET, &d_offset, sizeof(d_offset)),
++                              HIPBLAS_STATUS_SUCCESS);
++
+         hipblasLtMatmulDesc_t md = nullptr;
+         EXPECT_HIPBLAS_STATUS(hipblasLtMatmulDescCreate(&md, HIPBLAS_COMPUTE_32F, HIP_R_32F),
+                               HIPBLAS_STATUS_SUCCESS);
+@@ -531,25 +550,43 @@ inline void testing_aux_check_numerics_gemm(const Arguments& arg)
+             CHECK_HIP_ERROR(hipMalloc(&dW, heur[0].workspaceSize));
+ 
+         float alpha = 1.0f, beta = 0.0f;
+-        EXPECT_HIPBLAS_STATUS(hipblasLtMatmul(handle,
+-                                              md,
+-                                              &alpha,
+-                                              dA,
+-                                              lA,
+-                                              dB,
+-                                              lB,
+-                                              &beta,
+-                                              dC,
+-                                              lC,
+-                                              dD,
+-                                              lD,
+-                                              &heur[0].algo,
+-                                              dW,
+-                                              heur[0].workspaceSize,
+-                                              stream),
+-                              HIPBLAS_STATUS_SUCCESS);
++        if(use_cpp)
++        {
++            hipblaslt_ext::Gemm gemm(handle, md, &alpha, dA, lA, dB, lB, &beta, dC, lC, dD, lD);
++            gemm.setMaxWorkspaceBytes(heur[0].workspaceSize);
++            EXPECT_HIPBLAS_STATUS(gemm.initialize(heur[0].algo, dW), HIPBLAS_STATUS_SUCCESS);
++            EXPECT_HIPBLAS_STATUS(gemm.run(stream), HIPBLAS_STATUS_SUCCESS);
++        }
++        else
++        {
++            EXPECT_HIPBLAS_STATUS(hipblasLtMatmul(handle,
++                                                  md,
++                                                  &alpha,
++                                                  dA,
++                                                  lA,
++                                                  dB,
++                                                  lB,
++                                                  &beta,
++                                                  dC,
++                                                  lC,
++                                                  dD,
++                                                  lD,
++                                                  &heur[0].algo,
++                                                  dW,
++                                                  heur[0].workspaceSize,
++                                                  stream),
++                                  HIPBLAS_STATUS_SUCCESS);
++        }
+         CHECK_HIP_ERROR(hipStreamSynchronize(stream));
+ 
++        std::vector<float> D_actual(M * N);
++        CHECK_HIP_ERROR(hipMemcpy(D_actual.data(),
++                                  hD[kBatch - 1] + d_offset,
++                                  sizeof(float) * M * N,
++                                  hipMemcpyDeviceToHost));
++        ASSERT_EQ(D_actual[0], 128.0f);
++        ASSERT_EQ(std::isnan(D_actual.back()), nan_batch == kBatch - 1);
++
+         EXPECT_HIPBLAS_STATUS(hipblasLtCheckNumericsDrain(handle, out_reported),
+                               HIPBLAS_STATUS_SUCCESS);
+ 
+@@ -576,13 +613,29 @@ inline void testing_aux_check_numerics_gemm(const Arguments& arg)
+ 
+     reset_env();
+     setenv("HIPBLASLT_CHECK_NUMERICS", "1", 1);
+-    run_pointer_array_scenario(/*nan_batch=*/2, &reported);
++    run_pointer_array_scenario(/*nan_batch=*/2, 0, false, false, &reported);
+     EXPECT_EQ(reported, 1u) << "NaN in the last pointer-array batch must be reported";
+ 
+     reset_env();
+     setenv("HIPBLASLT_CHECK_NUMERICS", "1", 1);
+-    run_pointer_array_scenario(kNoNanBatch, &reported);
++    run_pointer_array_scenario(kNoNanBatch, 0, false, false, &reported);
+     EXPECT_EQ(reported, 0u) << "clean pointer-array matmul must not be flagged";
+ 
++    // The output starts after a full matrix of unused data. Check both a NaN
++    // at the output's end and NaNs confined to that unused prefix.
++    for(bool use_cpp : {false, true})
++    {
++        SCOPED_TRACE(use_cpp ? "extension API" : "C API");
++        reset_env();
++        setenv("HIPBLASLT_CHECK_NUMERICS", "1", 1);
++        run_pointer_array_scenario(2, 128 * 128, false, use_cpp, &reported);
++        EXPECT_EQ(reported, 1u) << "NaN in offset pointer-array output must be reported";
++
++        reset_env();
++        setenv("HIPBLASLT_CHECK_NUMERICS", "1", 1);
++        run_pointer_array_scenario(kNoNanBatch, 128 * 128, true, use_cpp, &reported);
++        EXPECT_EQ(reported, 0u) << "NaNs before offset pointer-array output must be ignored";
++    }
++
+     reset_env();
+ }
+diff --git a/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/include/check_numerics_matrix.hpp b/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/include/check_numerics_matrix.hpp
+index 2f3b7c1033c..827439b4ccf 100644
+--- a/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/include/check_numerics_matrix.hpp
++++ b/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/include/check_numerics_matrix.hpp
+@@ -78,17 +78,19 @@ inline std::string hipblaslt_check_numerics_ts()
+ // this call's id via atomicCAS(0, call_id); subsequent NaNs no-op so the slot
+ // retains the FIRST call_id that observed a NaN. With ptr_array set, D is a
+ // device array holding one matrix pointer per batch and stride_d is unused.
++// offset_d is added to each matrix pointer in elements.
+ template <int DIM_X, int DIM_Y, typename T>
+-__global__ void hipblaslt_check_nan_kernel(int64_t               m,
+-                                           int64_t               n,
+-                                           const void*           D,
+-                                           int64_t               ldd,
+-                                           int64_t               stride_d,
+-                                           int                   row_major,
+-                                           int                   ptr_array,
+-                                           int32_t               batch_base,
++__global__ void hipblaslt_check_nan_kernel(int64_t     m,
++                                           int64_t     n,
++                                           const void* D,
++                                           int64_t     ldd,
++                                           int64_t     stride_d,
++                                           int         row_major,
++                                           int         ptr_array,
++                                           int64_t     offset_d,
++                                           int32_t     batch_base,
+                                            uint32_t* __restrict__ flag,
+-                                           uint32_t              call_id)
++                                           uint32_t call_id)
+ {
+     int64_t tx = blockIdx.x * (int64_t)blockDim.x + threadIdx.x;
+     int64_t ty = blockIdx.y * (int64_t)blockDim.y + threadIdx.y;
+@@ -96,7 +98,7 @@ __global__ void hipblaslt_check_nan_kernel(int64_t               m,
+     if(tx < m && ty < n)
+     {
+         const int32_t batch   = batch_base + (int32_t)blockIdx.z;
+-        const T*      batch_D = ptr_array ? static_cast<const T* const*>(D)[batch]
++        const T*      batch_D = ptr_array ? static_cast<const T* const*>(D)[batch] + offset_d
+                                           : static_cast<const T*>(D) + (int64_t)batch * stride_d;
+         const int64_t offset  = row_major ? (tx * ldd + ty) : (tx + ldd * ty);
+         if(hipblaslt_isnan(batch_D[offset]))
+@@ -113,6 +115,7 @@ inline rocblaslt_status hipblaslt_launch_nan_kernel(int64_t     m,
+                                                     int64_t     stride_d,
+                                                     bool        row_major,
+                                                     bool        ptr_array,
++                                                    int64_t     offset_d,
+                                                     uint32_t*   d_flag,
+                                                     uint32_t    call_id,
+                                                     hipStream_t stream)
+@@ -131,12 +134,18 @@ inline rocblaslt_status hipblaslt_launch_nan_kernel(int64_t     m,
+         dim3          blocks(grid_x, grid_y, (unsigned)this_batch);
+ 
+         hipLaunchKernelGGL((hipblaslt_check_nan_kernel<DIM_X, DIM_X, T>),
+-                           blocks, threads, 0, stream,
+-                           m, n,
++                           blocks,
++                           threads,
++                           0,
++                           stream,
++                           m,
++                           n,
+                            D,
+-                           ldd, stride_d,
++                           ldd,
++                           stride_d,
+                            row_major ? 1 : 0,
+                            ptr_array ? 1 : 0,
++                           offset_d,
+                            base,
+                            d_flag,
+                            call_id);
+@@ -151,6 +160,7 @@ inline rocblaslt_status hipblaslt_launch_nan_kernel(int64_t     m,
+ // scanned matmul with a NaN in D (0 = none). nullptr disables scanning.
+ // ptr_array: D is a device array of per-batch matrix pointers
+ // (HIPBLASLT_BATCH_MODE_POINTER_ARRAY) rather than one strided buffer.
++// offset_d: element offset within each pointer-array matrix; ignored for strided D.
+ inline rocblaslt_status hipblaslt_check_numerics_output_D(hipStream_t stream,
+                                                           int64_t     m,
+                                                           int64_t     n,
+@@ -165,7 +175,8 @@ inline rocblaslt_status hipblaslt_check_numerics_output_D(hipStream_t stream,
+                                                           uint32_t    scan_every,
+                                                           uint32_t    scan_from,
+                                                           uint32_t    scan_until,
+-                                                          bool        ptr_array = false)
++                                                          bool        ptr_array = false,
++                                                          int64_t     offset_d  = 0)
+ {
+     if(!d_flag || !D || m == 0 || n == 0 || batch == 0)
+         return rocblaslt_status_success;
+@@ -188,28 +199,28 @@ inline rocblaslt_status hipblaslt_check_numerics_output_D(hipStream_t stream,
+     {
+     case HIP_R_32F:
+         return hipblaslt_launch_nan_kernel<float>(
+-            m, n, batch, D, ldd, stride_d, row_major, ptr_array, d_flag, call_id, stream);
++            m, n, batch, D, ldd, stride_d, row_major, ptr_array, offset_d, d_flag, call_id, stream);
+     case HIP_R_64F:
+         return hipblaslt_launch_nan_kernel<double>(
+-            m, n, batch, D, ldd, stride_d, row_major, ptr_array, d_flag, call_id, stream);
++            m, n, batch, D, ldd, stride_d, row_major, ptr_array, offset_d, d_flag, call_id, stream);
+     case HIP_R_16F:
+         return hipblaslt_launch_nan_kernel<hipblasLtHalf>(
+-            m, n, batch, D, ldd, stride_d, row_major, ptr_array, d_flag, call_id, stream);
++            m, n, batch, D, ldd, stride_d, row_major, ptr_array, offset_d, d_flag, call_id, stream);
+     case HIP_R_16BF:
+         return hipblaslt_launch_nan_kernel<hip_bfloat16>(
+-            m, n, batch, D, ldd, stride_d, row_major, ptr_array, d_flag, call_id, stream);
++            m, n, batch, D, ldd, stride_d, row_major, ptr_array, offset_d, d_flag, call_id, stream);
+     case HIP_R_8F_E4M3_FNUZ:
+         return hipblaslt_launch_nan_kernel<hipblaslt_f8_fnuz>(
+-            m, n, batch, D, ldd, stride_d, row_major, ptr_array, d_flag, call_id, stream);
++            m, n, batch, D, ldd, stride_d, row_major, ptr_array, offset_d, d_flag, call_id, stream);
+     case HIP_R_8F_E5M2_FNUZ:
+         return hipblaslt_launch_nan_kernel<hipblaslt_bf8_fnuz>(
+-            m, n, batch, D, ldd, stride_d, row_major, ptr_array, d_flag, call_id, stream);
++            m, n, batch, D, ldd, stride_d, row_major, ptr_array, offset_d, d_flag, call_id, stream);
+     case HIP_R_8F_E4M3:
+         return hipblaslt_launch_nan_kernel<hipblaslt_f8>(
+-            m, n, batch, D, ldd, stride_d, row_major, ptr_array, d_flag, call_id, stream);
++            m, n, batch, D, ldd, stride_d, row_major, ptr_array, offset_d, d_flag, call_id, stream);
+     case HIP_R_8F_E5M2:
+         return hipblaslt_launch_nan_kernel<hipblaslt_bf8>(
+-            m, n, batch, D, ldd, stride_d, row_major, ptr_array, d_flag, call_id, stream);
++            m, n, batch, D, ldd, stride_d, row_major, ptr_array, offset_d, d_flag, call_id, stream);
+     default:
+         return rocblaslt_status_success;
+     }
+@@ -368,7 +379,8 @@ inline rocblaslt_status hipblaslt_check_numerics_scan_D(rocblaslt_handle handle,
+                                                         int64_t          ldd,
+                                                         int64_t          stride_d,
+                                                         bool             row_major,
+-                                                        bool             ptr_array = false)
++                                                        bool             ptr_array = false,
++                                                        int64_t          offset_d  = 0)
+ {
+     if(!handle || !handle->check_numerics)
+         return rocblaslt_status_success;
+@@ -418,14 +430,21 @@ inline rocblaslt_status hipblaslt_check_numerics_scan_D(rocblaslt_handle handle,
+     }
+ 
+     return hipblaslt_check_numerics_output_D(stream,
+-                                             m, n, batch, type_d,
+-                                             D, ldd, stride_d, row_major,
++                                             m,
++                                             n,
++                                             batch,
++                                             type_d,
++                                             D,
++                                             ldd,
++                                             stride_d,
++                                             row_major,
+                                              handle->check_numerics_flag,
+                                              call_id,
+                                              handle->check_numerics_scan_every,
+                                              handle->check_numerics_scan_from,
+                                              handle->check_numerics_scan_until,
+-                                             ptr_array);
++                                             ptr_array,
++                                             offset_d);
+ }
+ 
+ // Public on-demand drain (hipblasLtCheckNumericsDrain). Forces sync+read+reset
+diff --git a/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/rocblaslt_mat.cpp b/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/rocblaslt_mat.cpp
+index 2993dd27c65..1f149e05c7f 100644
+--- a/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/rocblaslt_mat.cpp
++++ b/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/rocblaslt_mat.cpp
+@@ -277,18 +277,20 @@ rocblaslt_status rocblaslt_matmul_impl(const rocblaslt_handle       handle,
+         const uint32_t call_id = hipblaslt_check_numerics_begin_call(handle);
+         if(call_id != 0)
+         {
+-            st = hipblaslt_check_numerics_scan_D(handle,
+-                                                 stream,
+-                                                 call_id,
+-                                                 m, n,
+-                                                 matD->batch_count,
+-                                                 type_d,
+-                                                 D,
+-                                                 ldd,
+-                                                 batch_stride_d,
+-                                                 (matD->order == HIPBLASLT_ORDER_ROW),
+-                                                 (matD->batch_mode
+-                                                  == HIPBLASLT_BATCH_MODE_POINTER_ARRAY));
++            st = hipblaslt_check_numerics_scan_D(
++                handle,
++                stream,
++                call_id,
++                m,
++                n,
++                matD->batch_count,
++                type_d,
++                D,
++                ldd,
++                batch_stride_d,
++                (matD->order == HIPBLASLT_ORDER_ROW),
++                (matD->batch_mode == HIPBLASLT_BATCH_MODE_POINTER_ARRAY),
++                batch_offset_d);
+         }
+     }
+ 
+diff --git a/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/tensile_host.cpp b/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/tensile_host.cpp
+index 4df66bf2660..c5f5a4c19fa 100644
+--- a/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/tensile_host.cpp
++++ b/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/tensile_host.cpp
+@@ -571,14 +571,13 @@ namespace
+     }
+ 
+     // Adapter: extract shape from a Tensile problem and forward to scan_D.
+-    rocblaslt_status maybe_check_numerics_problem(
+-        rocblaslt_handle                           handle,
+-        hipStream_t                                stream,
+-        const TensileLite::ContractionProblemGemm& prob,
+-        const void*                                D,
+-        uint32_t                                   call_id)
+-    {
+-        if(!handle || !handle->check_numerics || !D || call_id == 0)
++    rocblaslt_status maybe_check_numerics_problem(rocblaslt_handle                           handle,
++                                                  hipStream_t                                stream,
++                                                  const TensileLite::ContractionProblemGemm& prob,
++                                                  const TensileLite::ContractionInputs&      inputs,
++                                                  uint32_t call_id)
++    {
++        if(!handle || !handle->check_numerics || (!inputs.d && !inputs.batchD) || call_id == 0)
+             return rocblaslt_status_success;
+ 
+         const int64_t m        = prob.c().sizes()[0];
+@@ -591,17 +590,29 @@ namespace
+         const hipDataType type_d    = tensile2HipType(prob.d().dataType());
+         const bool        ptr_array
+             = (prob.batchMode() == TensileLite::ContractionProblemGemm::BATCHMODE::POINTER_ARRAY);
++        const void* D
++            = ptr_array && inputs.batchD ? static_cast<const void*>(inputs.batchD) : inputs.d;
++        // Tensile stores offsets in bytes; the scanner adds an element offset.
++        const int64_t offset_d
++            = ptr_array && inputs.batchOffsetD != 0
++                  ? inputs.batchOffsetD
++                        / static_cast<int64_t>(
++                            TensileLite::DataTypeInfo::Get(prob.d().dataType()).elementSize)
++                  : 0;
+ 
+         return hipblaslt_check_numerics_scan_D(handle,
+                                                stream,
+                                                call_id,
+-                                               m, n, batch,
++                                               m,
++                                               n,
++                                               batch,
+                                                type_d,
+                                                D,
+                                                ldd,
+                                                stride_d,
+                                                row_major,
+-                                               ptr_array);
++                                               ptr_array,
++                                               offset_d);
+     }
+ 
+     // Post-launch hook shared by single- and grouped-GEMM. Acquires one
+@@ -616,9 +627,10 @@ namespace
+             return rocblaslt_status_success;
+         rocblaslt_status agg = rocblaslt_status_success;
+         enumerate(call_id,
+-                  [&](const TensileLite::ContractionProblemGemm& prob, const void* d) {
+-                      const auto st = maybe_check_numerics_problem(
+-                          handle, stream, prob, d, call_id);
++                  [&](const TensileLite::ContractionProblemGemm& prob,
++                      const TensileLite::ContractionInputs&      inputs) {
++                      const auto st
++                          = maybe_check_numerics_problem(handle, stream, prob, inputs, call_id);
+                       if(st != rocblaslt_status_success && agg == rocblaslt_status_success)
+                           agg = st;
+                   });
+@@ -4668,10 +4680,10 @@ rocblaslt_status runKernelFromInvocation(rocblaslt_handle       handle,
+ 
+             if(status == rocblaslt_status_success)
+             {
+-                auto st = check_numerics_post_launch(
+-                    handle, stream, [&](uint32_t /*cid*/, auto visit) {
+-                        visit(data->problem, data->inputs.d);
+-                    });
++                auto st
++                    = check_numerics_post_launch(handle, stream, [&](uint32_t /*cid*/, auto visit) {
++                          visit(data->problem, data->inputs);
++                      });
+                 if(st != rocblaslt_status_success)
+                     status = st;
+             }
+@@ -4740,7 +4752,7 @@ rocblaslt_status runKernelFromInvocation(rocblaslt_handle       handle,
+                         const size_t N = std::min(data->problem.gemms.size(),
+                                                   data->inputs.grouped.size());
+                         for(size_t i = 0; i < N; ++i)
+-                            visit(data->problem.gemms[i], data->inputs.grouped[i].d);
++                            visit(data->problem.gemms[i], data->inputs.grouped[i]);
+                     });
+                 if(st != rocblaslt_status_success && status == rocblaslt_status_success)
+                     status = st;
