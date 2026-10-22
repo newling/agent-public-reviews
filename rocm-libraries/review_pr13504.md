@@ -2,14 +2,14 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **PR reviewed:** [ROCm/rocm-libraries#13504](https://github.com/ROCm/rocm-libraries/pull/13504)
 
-Reviewed head: `d62ad84b8c170aad1e7f68fa8bcba46944a5276a`. Comparison base: `b9bbd022c08ad7e30d00dc6c98e6e923d486d8a9`. Review date: 2026-10-22.
+Reviewed head: [d62ad84b8c170aad1e7f68fa8bcba46944a5276a](https://github.com/ROCm/rocm-libraries/commit/d62ad84b8c170aad1e7f68fa8bcba46944a5276a). Comparison base: [b9bbd022c08ad7e30d00dc6c98e6e923d486d8a9](https://github.com/ROCm/rocm-libraries/commit/b9bbd022c08ad7e30d00dc6c98e6e923d486d8a9). Review date: 2026-10-22.
 
-Local suggestion branch: `review/pr13504-suggestions`, based on the reviewed head. The commits are independent and remain unpublished.
+Suggestion branch: [review/pr13504-suggestions](https://github.com/newling/rocm-libraries/tree/review/pr13504-suggestions), based on the reviewed head. The two published commits are independent.
 
 | Commit | Review item |
 | --- | --- |
-| `03022a5d74e` | Run the generator boundary tests in shared CI and exercise the command-line path |
-| `2bf8d8227df` | Update the architecture-testing documentation to match the workflow and byte limit |
+| [03022a5d74e](https://github.com/newling/rocm-libraries/commit/03022a5d74edc2059a0bb3f457fd80d7bf48e215) | Run the generator boundary tests in shared CI and exercise the command-line path |
+| [2bf8d8227df](https://github.com/newling/rocm-libraries/commit/2bf8d8227dfa496f6bb6eae86c85e76632cc9a31) | Update the architecture-testing documentation to match the workflow and byte limit |
 
 ## Tests
 
@@ -35,7 +35,7 @@ At [`test_hipblaslt_gentest.py:15`](https://github.com/ROCm/rocm-libraries/blob/
 
 For a concrete counterexample, replacing [`hipblaslt_gentest.py:356`](https://github.com/ROCm/rocm-libraries/blob/d62ad84b8c170aad1e7f68fa8bcba46944a5276a/projects/hipblaslt/clients/tests/hipblaslt_gentest.py#L356) with the former `arg.append(bytes(test[name], 'utf_8'))` leaves all four tests passing while the actual generator again accepts a 32-byte `gpu_arch` without a terminator. Changing the helper's comparison to count characters also leaves these tests green, despite accepting a 32-byte UTF-8 value made from 16 characters.
 
-Commit `03022a5d74e` registers the suite in the existing shared pre-commit workflow using an isolated PyYAML dependency, and adds command-line tests using the real YAML schema. They cover empty strings, the last valid byte length, exactly full fields, and multibyte input. The new tests pass on the submitted implementation and fail for both counterexamples; they also catch changing `>=` to `>`. The hook was exercised locally through pre-commit. These regression sources are committed with the suggestion, so no temporary reproducer is needed.
+Commit [03022a5d74e](https://github.com/newling/rocm-libraries/commit/03022a5d74edc2059a0bb3f457fd80d7bf48e215) registers the suite in the existing shared pre-commit workflow using an isolated PyYAML dependency, and adds command-line tests using the real YAML schema. They cover empty strings, the last valid byte length, exactly full fields, and multibyte input. The new tests pass on the submitted implementation and fail for both counterexamples; they also catch changing `>=` to `>`. The hook was exercised locally through pre-commit. These regression sources are committed with the suggestion, so no temporary reproducer is needed.
 
 ## Suggestions
 
@@ -45,7 +45,7 @@ The new row at [`TESTING.md:820`](https://github.com/ROCm/rocm-libraries/blob/d6
 
 The new filtering explanation also calls the field limit 31 characters, although the implementation measures UTF-8 bytes. Its claim that any pattern containing `1250` matches both names is too broad: anchoring or a required suffix changes that result.
 
-Commit `2bf8d8227df` documents the actual workflow triggers and strict target, states the byte limit, and describes the unanchored `|1250` alternative used by this patch. The workflow/source comparison and the C++ filter and UTF-8 tests support those corrections.
+Commit [2bf8d8227df](https://github.com/newling/rocm-libraries/commit/2bf8d8227dfa496f6bb6eae86c85e76632cc9a31) documents the actual workflow triggers and strict target, states the byte limit, and describes the unanchored `|1250` alternative used by this patch. The workflow/source comparison and the C++ filter and UTF-8 tests support those corrections.
 
 ## Commentary
 
@@ -68,4 +68,4 @@ Using `std::string` would require changing how records are written and read. A s
 
 CPU tests are the appropriate level for the string boundary and serialized layout. The existing hardware tests are appropriate for the expanded architecture selection; no production feature flag is needed. The benchmark's YAML path consumes the same generator and Arguments format, which is why testing actual command-line generation matters. No TensileLite code-generation behavior changes here, so additional local code-generation suites would not address the generator-test gap.
 
-The suggestion branch contains only the two mapped commits. The stress group's hardware execution, FFM timeout diagnosis, and coverage-threshold investigation remain outside this local review. No review was posted, branch pushed, or PR description rewritten.
+The suggestion branch contains only the two mapped commits. The stress group's hardware execution, FFM timeout diagnosis, and coverage-threshold investigation remain outside this local review. No review was posted to the PR and its description was not changed.
