@@ -6,7 +6,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **PR base:** `d3c5c82d35714a4759ce4bffe74987146b4a154d`
 
-**Review branch:** [`review/pr81-suggestions`](https://github.com/newling/rocjitsu-test-corpus/tree/review/pr81-suggestions), based on the reviewed head. No additional commits. The scope decisions below require more than a bounded correction; I have not added an isolated runner or selected an oracle policy on the author's behalf. The accompanying branch contains the submitted head unchanged. No GitHub PR review or discussion comment has been posted.
+**Implementation status:** No fix commits accompany this review. The isolated runner and independent-oracle companions were not implemented because their scope and design remain unresolved.
 
 ## Tests
 
@@ -56,7 +56,7 @@ The PR description promises independent-oracle companions for legacy half destin
 
 The current harness compares each workgroup with group zero. As the README correctly explains, identical wrong results pass. On RDNA4 hardware, I replaced just the whole-fit B128 buffer load at `width=128`, `remaining=16`, `kind=0` with four zero writes. The workspace producer supplies four nonzero DWORDs, so this deliberately violates the load's result contract. The first changed digest was checkpoint 462, but the seven-workgroup smoke still exited successfully. The appendix preserves the exact mutation and setup.
 
-If the claimed companions belong in this PR, add separately registered tests that check independently derived values and exercise the actual translation configuration; verify that a deliberate wrong result fails. Otherwise, correct the description's scope. This is a missing claimed feature, not an objection to retaining the documented smoke-only harness. I have not chosen or implemented the broader companion/oracle design in the review branch.
+If the claimed companions belong in this PR, add separately registered tests that check independently derived values and exercise the actual translation configuration; verify that a deliberate wrong result fails. Otherwise, correct the description's scope. This is a missing claimed feature, not an objection to retaining the documented smoke-only harness. I have not chosen or implemented the broader companion/oracle design.
 
 ## Suggestions
 
