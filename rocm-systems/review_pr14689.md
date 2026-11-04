@@ -4,9 +4,9 @@
 
 **Reviewed head:** [ff4ed4f0470](https://github.com/ROCm/rocm-systems/commit/ff4ed4f0470), stacked on #14688 `d8ebb9854cc` and #14687 `8202e50072c`; reviewed on 2026-11-04.
 
-**Review mode:** follow-up. The reviewer asked for points no earlier reviewer has raised. The existing review threads and review bodies were read only to avoid repeating them. Settled topics are not raised again: ISA citations, modeling-choice wording, MEMVIOL, the 256-byte vs 2048-byte granularity, byte-granular race tracking, removal of `element_size_bytes`, naming, the i32-at-254 boundary tests, a fixture with a nonzero LDS base, the empty-`lds_ranges` wording, and the fully clipped fault test.
+**Scope:** new points only. Another reviewer had already reviewed this PR over several rounds, so this review covers only points that review had not raised. The existing review threads and review bodies were read only to avoid repeating them. Settled topics are not raised again: ISA citations, modeling-choice wording, MEMVIOL, the 256-byte vs 2048-byte granularity, byte-granular race tracking, removal of `element_size_bytes`, naming, the i32-at-254 boundary tests, a fixture with a nonzero LDS base, the empty-`lds_ranges` wording, and the fully clipped fault test.
 
-**Suggestion branch:** [review/pr14689-followup-20261104](https://github.com/newling/rocm-systems/tree/review/pr14689-followup-20261104), based on the reviewed head ([combined diff](https://github.com/newling/rocm-systems/compare/ff4ed4f04709cd3845b072fc1368785c34524f3d...a4f7f704afa3e73ea0c76388b04ff82986e9c9ab)). The commits are independent of each other.
+**Suggestion branch:** [review/pr14689-suggestions](https://github.com/newling/rocm-systems/tree/review/pr14689-suggestions), based on the reviewed head ([combined diff](https://github.com/newling/rocm-systems/compare/ff4ed4f04709cd3845b072fc1368785c34524f3d...a4f7f704afa3e73ea0c76388b04ff82986e9c9ab)). The commits are independent of each other.
 
 | Commit | Item |
 | --- | --- |
@@ -59,7 +59,7 @@ No replacement text is supplied.
 
 ## Branch, validation and omissions
 
-Branch [review/pr14689-followup-20261104](https://github.com/newling/rocm-systems/tree/review/pr14689-followup-20261104) has three commits on `ff4ed4f0470`, in the order listed above. Changed-file pre-commit hooks pass. No production behavior changed.
+Branch [review/pr14689-suggestions](https://github.com/newling/rocm-systems/tree/review/pr14689-suggestions) has three commits on `ff4ed4f0470`, in the order listed above. Changed-file pre-commit hooks pass. No production behavior changed.
 
 Omitted: a description rewrite (not requested), any change to the DS or async-to-LDS behavior (outside this PR and a modeling decision), and hardware qualification of the straddle policies.
 
