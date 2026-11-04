@@ -4,12 +4,12 @@
 
 Reviewed head: `285183b47df2` (one commit on `develop` at `e85f435eb190`).
 
-Suggestion branch: `review/pr14584-suggestions` in the reviewer's fork, based on `285183b47df2`. The two commits are independent and can be cherry-picked separately.
+Suggestion branch: [`review/pr14584-suggestions`](https://github.com/newling/rocm-systems/tree/review/pr14584-suggestions), based on `285183b47df2` ([diff against the PR head](https://github.com/newling/rocm-systems/compare/285183b47df2574da98582b4492939fe2e57b57f...review/pr14584-suggestions)). The two commits are independent and can be cherry-picked separately.
 
 | Commit | Item |
 |---|---|
-| [`cd85b997742`](https://github.com/ROCm/rocm-systems/commit/cd85b99774232e1170d7b37eba6f30a48a6b5848) | Actionable item 1: command-processor regression test |
-| [`0b09c931f92`](https://github.com/ROCm/rocm-systems/commit/0b09c931f9235036c105c20530cb18e2c238b465) | Actionable item 2: primary-stall counter in the fuzz stats |
+| [`cd85b997742`](https://github.com/newling/rocm-systems/commit/cd85b99774232e1170d7b37eba6f30a48a6b5848) | Actionable item 1: command-processor regression test |
+| [`0b09c931f92`](https://github.com/newling/rocm-systems/commit/0b09c931f9235036c105c20530cb18e2c238b465) | Actionable item 2: primary-stall counter in the fuzz stats |
 
 This review covers only points that the existing review threads do not raise. I agree with the open threads on fault-state sampling before peer-XCD notifications drain, the obsolete `older_work_may_remain` exemption, the regression preconditions, and the termination docs, and I don't repeat them here.
 
