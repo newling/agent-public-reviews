@@ -6,7 +6,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Scope:** Independent review of the occupancy calculations, register-pool enforcement, global split-U store path, regression tests, and tuning-file changes. All six source/test files were inspected; all 290 YAML diffs were checked to contain only `MaxOccupancy` changes. Kernel generation was sampled.
 
-**Local suggestion branch:** `review/pr9708-suggestions`, based on the reviewed head. Commit `8bc11102b2c3bc5841975073cd3a60aaafbe7883` implements the optional capacity cleanup below. The architecture-scope item remains an author decision.
+**Suggestion branch:** [review/pr9708-suggestions](https://github.com/newling/rocm-libraries/tree/review/pr9708-suggestions), based on the reviewed head. Commit [8bc11102b2c](https://github.com/newling/rocm-libraries/commit/8bc11102b2c3bc5841975073cd3a60aaafbe7883) implements the optional capacity cleanup below. The architecture-scope item remains an author decision.
 
 ## Tests
 
@@ -49,7 +49,7 @@ No policy change was implemented locally because both scope choices are reasonab
 
 At [hardware_caps.hpp:703](https://github.com/ROCm/rocm-libraries/blob/9f658769910ffae218d72ea2b931a903abb13768/projects/hipblaslt/tensilelite/rocisa/rocisa/include/hardware_caps.hpp#L703), the gfx11 architecture list and 1536/1024 capacities are duplicated. Derive `PhysicalMaxVgprCU` as `2 * PhysicalMaxVgpr * 32` so the compute-unit total follows the per-SIMD value already selected above.
 
-Implemented in local commit `8bc11102b2c3bc5841975073cd3a60aaafbe7883`. The same cleanup limits the wave32-units comment to gfx11 and directly includes `<algorithm>` for the existing `std::transform` use. This is optional maintenance cleanup; the capability comparison found no behavior change.
+Implemented in commit [8bc11102b2c](https://github.com/newling/rocm-libraries/commit/8bc11102b2c3bc5841975073cd3a60aaafbe7883). The same cleanup limits the wave32-units comment to gfx11 and directly includes `<algorithm>` for the existing `std::transform` use. This is optional maintenance cleanup; the capability comparison found no behavior change.
 
 ## Scope decisions
 
@@ -59,7 +59,7 @@ Copy-ready question for the unresolved architecture choice:
 
 ## Commentary
 
-The tested head predates changes on `develop` in both `KernelWriterAssembly.py` and `Components/GSU.py`. For example, [the store-remap buffer change](https://github.com/ROCm/rocm-libraries/commit/9b4b2dcd30d) affects adjacent store code. Rebase and rerun the affected generation/tests before integration, as required by the component's guidance for these shared generator files. The local suggestion branch deliberately remains based on the reviewed head.
+The tested head predates changes on `develop` in both `KernelWriterAssembly.py` and `Components/GSU.py`. For example, [the store-remap buffer change](https://github.com/ROCm/rocm-libraries/commit/9b4b2dcd30d) affects adjacent store code. Rebase and rerun the affected generation/tests before integration, as required by the component's guidance for these shared generator files. The suggestion branch deliberately remains based on the reviewed head.
 
 ## Appendix: reproduce the architecture-scope examples
 
