@@ -6,7 +6,7 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Mode and scope:** Independent review of all seven changed files, including counter completion, LDS event retirement and trimming, workgroup wave-count construction, plugin dispatch/termination paths, documentation, and regression coverage. Existing PR reviews and discussion were not consulted.
 
-**Suggestion branch:** `review/pr15419-suggestions`, based directly on the reviewed head. Local commit `55e02a665c96ec808ab191ab636e1716d1c9f04b` implements suggestion 1 below and changes comments/documentation only.
+**Suggestion branch:** [review/pr15419-suggestions](https://github.com/newling/rocm-systems/tree/review/pr15419-suggestions), based directly on the reviewed head. Commit [`55e02a665c9`](https://github.com/newling/rocm-systems/commit/55e02a665c96ec808ab191ab636e1716d1c9f04b) implements suggestion 1 below and changes comments/documentation only.
 
 ## Tests
 
@@ -32,6 +32,6 @@ None. No correctness defect was found in the reviewed change.
 
 In [`event_registry.h:25`](https://github.com/ROCm/rocm-systems/blob/8d32b85223ab5e8afb28efba07847f7e76687abe/emulation/rocjitsu/lib/rocjitsu/src/rocjitsu/vm/plugins/race_detector/core/event_registry.h#L25) and its `markRetired` comment at line 96, retirement is still described as occurring at `s_barrier`. The `EventId` lifecycle comment repeats that restriction, and the handbook's **RETIRED** entry starts by asserting that a barrier has occurred before describing the new exception. These descriptions can mislead someone tracing why a single-wave event has disappeared without a barrier.
 
-Local commit `55e02a665c96ec808ab191ab636e1716d1c9f04b` describes retirement by its effect and distinguishes the single-wave and multi-wave paths. It also removes the redundant decorative banner above the new tests, following the project's comment guide. This is optional documentation cleanup; runtime behavior and test assertions are unchanged.
+Commit [`55e02a665c9`](https://github.com/newling/rocm-systems/commit/55e02a665c96ec808ab191ab636e1716d1c9f04b) describes retirement by its effect and distinguishes the single-wave and multi-wave paths. It also removes the redundant decorative banner above the new tests, following the project's comment guide. This is optional documentation cleanup; runtime behavior and test assertions are unchanged.
 
-The local handoff is `review/pr15419-suggestions` at `55e02a665c96ec808ab191ab636e1716d1c9f04b`, with that one commit mapped to suggestion 1. No implementation findings remain unaddressed. The validation limits are recorded above. The suggestion commit remains local; its complete [patch](patches/pr15419-55e02a665c9.patch) accompanies this review and applies from the repository root at the reviewed head.
+The published suggestion branch contains one commit, mapped to suggestion 1. No implementation findings remain unaddressed. The validation limits are recorded above. A complete [patch](patches/pr15419-55e02a665c9.patch) also accompanies this review and applies from the repository root at the reviewed head.
