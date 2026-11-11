@@ -1,0 +1,18 @@
+diff --git a/projects/hipblaslt/clients/common/include/testing_auxiliary.hpp b/projects/hipblaslt/clients/common/include/testing_auxiliary.hpp
+index 10bda83cfe9..a13edb3dc08 100644
+--- a/projects/hipblaslt/clients/common/include/testing_auxiliary.hpp
++++ b/projects/hipblaslt/clients/common/include/testing_auxiliary.hpp
+@@ -4133,9 +4133,10 @@ inline void testing_aux_rocblaslt_rocroller_host_func(const Arguments& arg)
+         return algo;
+     };
+
+-    // Indices without the rocRoller marker bit: Tensile indices (80950 decodes to a
+-    // 32x1920x1728 tile) and the -1 "no solution" sentinel. Neither entry point may build
+-    // or launch a kernel for them.
++    // Nonnegative indices lack the rocRoller marker, regardless of the build's Tensile
++    // index assignments. With this encoding, 80950 decodes to a 32x1920x1728 tile.
++    // The -1 "no solution" sentinel has the marker but also invalid reserved bits.
++    // Neither entry point may build or launch a kernel for these indices.
+     for(int index : {0, 80950, -1})
+     {
+         SCOPED_TRACE(index);
