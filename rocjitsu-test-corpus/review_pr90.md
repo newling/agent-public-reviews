@@ -6,13 +6,13 @@ Reviewed head: `7d71596dae6e16eafc1d1d7c07b8e7cd38020320`. Diff base: `d2fb14fdd
 
 Deep review of all four changed files and all 40 added cases, including existing reviews and responses, correctness, build/test cost, nearby reuse, and shared-header consumers. Relevant paths in companion [ROCm/rocm-systems#15486](https://github.com/ROCm/rocm-systems/pull/15486) were inspected and exercised at `7c488f66a6ab67276ec27740e215edd4b54ccf8d`; this is not a separate full review of that implementation PR.
 
-Local suggestion branch: `review/pr90-current-suggestions`, based on the reviewed corpus head. The tested diffs are included below as patches without author metadata; apply them in numeric order to that head with `git apply`.
+Suggestion branch: [review/pr90-current-suggestions](https://github.com/newling/rocjitsu-test-corpus/tree/review/pr90-current-suggestions), based on the reviewed corpus head ([combined diff](https://github.com/newling/rocjitsu-test-corpus/compare/7d71596dae6e16eafc1d1d7c07b8e7cd38020320...review/pr90-current-suggestions)). The tested diffs are included below as patches without author metadata; apply them in numeric order to that head with `git apply`.
 
-| Local commit | Patch | Item |
+| Commit | Patch | Item |
 | --- | --- | --- |
-| `1b50c21e220d57f3c797d422dbae19d53c9433ff` | [01](pr90/01-retain-exec-zero-slots.patch) | Make the three remaining masked-load cases depend on retaining the masked slot |
-| `2ab45535650d3b32b571a729c1d41e6bfe1cf0b2` | [02](pr90/02-trigger-storecnt-backpressure.patch) | Exercise STOREcnt backpressure before testing LOADcnt isolation |
-| `4adf856db31dd115effebed2a9279f845eee065f` | [03](pr90/03-clarify-comments.patch) | Clarify capacity and instruction-skipping comments |
+| [1b50c21](https://github.com/newling/rocjitsu-test-corpus/commit/1b50c21e220d57f3c797d422dbae19d53c9433ff) | [01](pr90/01-retain-exec-zero-slots.patch) | Make the three remaining masked-load cases depend on retaining the masked slot |
+| [2ab4553](https://github.com/newling/rocjitsu-test-corpus/commit/2ab45535650d3b32b571a729c1d41e6bfe1cf0b2) | [02](pr90/02-trigger-storecnt-backpressure.patch) | Exercise STOREcnt backpressure before testing LOADcnt isolation |
+| [4adf856](https://github.com/newling/rocjitsu-test-corpus/commit/4adf856db31dd115effebed2a9279f845eee065f) | [03](pr90/03-clarify-comments.patch) | Clarify capacity and instruction-skipping comments |
 
 ## Tests
 
@@ -45,7 +45,7 @@ Locations: [`asynccnt_exec_zero_kernel`, line 1931](https://github.com/ROCm/rocj
 
 The earlier review's request still applies to these three clean cases. The masked instruction is currently issue 64: admitting it already completes the oldest operation. The detector can then discard its slot and the test still passes. I reproduced that with a mutation that preserves admission but drops EXEC-zero slots: all three clean cases passed, while the already-corrected ordinary LOADcnt case failed.
 
-Move the masked operation to issue 63, restore EXEC, and issue an active async/DS/global load at 64 before probing the oldest result. Keep the masked barrier-arrive control at issue 64, because that case tests whether the instruction may be skipped. Commit `1b50c21` ([patch](pr90/01-retain-exec-zero-slots.patch)) makes this change without altering test counts or total issue counts. All three cases then reject the dropped-slot mutation with their intended LDS/VGPR race, and all 14 affected cases pass with the detector restored. The barrier-arrive control and one-short controls remain valid.
+Move the masked operation to issue 63, restore EXEC, and issue an active async/DS/global load at 64 before probing the oldest result. Keep the masked barrier-arrive control at issue 64, because that case tests whether the instruction may be skipped. Commit [1b50c21](https://github.com/newling/rocjitsu-test-corpus/commit/1b50c21e220d57f3c797d422dbae19d53c9433ff) ([patch](pr90/01-retain-exec-zero-slots.patch)) makes this change without altering test counts or total issue counts. All three cases then reject the dropped-slot mutation with their intended LDS/VGPR race, and all 14 affected cases pass with the detector restored. The barrier-arrive control and one-short controls remain valid.
 
 ### Attempt a STOREcnt overflow before checking LOADcnt isolation
 
@@ -53,11 +53,11 @@ Location: [`storecnt_pressure_kernel`, line 1766](https://github.com/ROCm/rocjit
 
 The kernel issues one load and 63 stores before reading the load result. STOREcnt is full, but none of those stores requires backpressure. The later output store follows the explicit counter drains, so it does not exercise that boundary either.
 
-Change the store repetition count to `kCounterCapacity + 1`. I tested a mutation that incorrectly drains LOADcnt specifically when STOREcnt overflows: the submitted test passed, while the 64-store version failed with “expected exactly one race, got 0.” With the correct detector, the revised test passes and still reports the intended load-to-`v_mov_b32` race. Commit `2ab4553` ([patch](pr90/02-trigger-storecnt-backpressure.patch)) implements this one-instruction strengthening, with no added test or allocation.
+Change the store repetition count to `kCounterCapacity + 1`. I tested a mutation that incorrectly drains LOADcnt specifically when STOREcnt overflows: the submitted test passed, while the 64-store version failed with “expected exactly one race, got 0.” With the correct detector, the revised test passes and still reports the intended load-to-`v_mov_b32` race. Commit [2ab4553](https://github.com/newling/rocjitsu-test-corpus/commit/2ab45535650d3b32b571a729c1d41e6bfe1cf0b2) ([patch](pr90/02-trigger-storecnt-backpressure.patch)) implements this one-instruction strengthening, with no added test or allocation.
 
 ## Suggestions
 
-- At [`hip_race_gfx1250_test.hip:1524`](https://github.com/ROCm/rocjitsu-test-corpus/blob/7d71596dae6e16eafc1d1d7c07b8e7cd38020320/corpus/race/integration/hip_race_gfx1250_test.hip#L1524), say that the stall waits for enough operations to complete; “the oldest operation” only follows for an ordered class. Commit `4adf856` ([patch](pr90/03-clarify-comments.patch)) corrects this, makes the LOADcnt skipping argument conditional on an older load remaining pending, and narrows the allocation comment in [`race_test_support.hpp:37`](https://github.com/ROCm/rocjitsu-test-corpus/blob/7d71596dae6e16eafc1d1d7c07b8e7cd38020320/corpus/race/integration/race_test_support.hpp#L37) to the LDS probes. Commit `1b50c21` also corrects “is skipped whenever” to “may be skipped” in the async-arrive explanation.
+- At [`hip_race_gfx1250_test.hip:1524`](https://github.com/ROCm/rocjitsu-test-corpus/blob/7d71596dae6e16eafc1d1d7c07b8e7cd38020320/corpus/race/integration/hip_race_gfx1250_test.hip#L1524), say that the stall waits for enough operations to complete; “the oldest operation” only follows for an ordered class. Commit [4adf856](https://github.com/newling/rocjitsu-test-corpus/commit/4adf856db31dd115effebed2a9279f845eee065f) ([patch](pr90/03-clarify-comments.patch)) corrects this, makes the LOADcnt skipping argument conditional on an older load remaining pending, and narrows the allocation comment in [`race_test_support.hpp:37`](https://github.com/ROCm/rocjitsu-test-corpus/blob/7d71596dae6e16eafc1d1d7c07b8e7cd38020320/corpus/race/integration/race_test_support.hpp#L37) to the LDS probes. Commit [1b50c21](https://github.com/newling/rocjitsu-test-corpus/commit/1b50c21e220d57f3c797d422dbae19d53c9433ff) also corrects “is skipped whenever” to “may be skipped” in the async-arrive explanation.
 - Refresh the PR description's counts from 34 additions / 96 gfx1250 cases to **40 / 102**, identify which companion revision its validation covers, and make the same “may be skipped” correction. No description edit was made.
 
 ## Scope decisions
@@ -125,4 +125,4 @@ pytest tests/test_corpus.py --target gfx1250 --suite race \
 
 On the submitted corpus, the first mutation is missed by the three named clean cases; the ordinary LOADcnt control detects it. The second mutation is missed by the STOREcnt isolation case. On the corresponding suggestion commits, those cases fail for the diagnostic changes described above. After both mutations are removed, all cases pass.
 
-The three suggestion commits remain on the local branch; their exact diffs are provided in the linked patches. Both requested code fixes and the comment suggestions are implemented and validated there; the PR-description refresh is a written suggestion only. GPU hardware execution and a full independent review of the companion remain outside the validation reported here.
+The suggestion branch and all three commits are published at the links above; their exact diffs are also provided in the linked patches. Both requested code fixes and the comment suggestions are implemented and validated there; the PR-description refresh is a written suggestion only. GPU hardware execution and a full independent review of the companion remain outside the validation reported here.
