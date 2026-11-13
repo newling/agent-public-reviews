@@ -54,17 +54,35 @@ Commit [c955b465e1a](https://github.com/newling/rocm-libraries/commit/c955b465e1
 
 **Existing review requests.** The original broad change has been split into this kernel PR and prerequisites [#15671](https://github.com/ROCm/rocm-libraries/pull/15671) and [#15672](https://github.com/ROCm/rocm-libraries/pull/15672). The prerequisite now rechecks handwritten-kernel predicates for explicit algorithms, and this PR tests wrong K and alpha through both C and extension APIs while checking that D remains unwritten. Required-solution checks name both `0x75a0` and `0x75a3`, and negative selection cases are committed. Format-ID parity, public argument validation, and the leading-dimension contract are addressed in the prerequisites. `GroupedGemm: false` excludes the device UserArgs path despite the general ProblemType default. These earlier requests are not repeated as unresolved findings.
 
-**Chip coverage.** MI350X and MI355X now have matching registrations, retiring the earlier MI355X-only CI concern. Other gfx950 chips may reach the MI350X entries through the existing device fallback, as the current description explains; the new GPU tests explicitly require one of the two named chip IDs. Independent execution evidence remains limited as stated above.
+**Chip coverage.** MI350X and MI355X now have matching registrations, retiring the earlier MI355X-only CI concern. The row-uniformity, selection, and algorithm-reuse fixtures execute only on gfx950 chips `0x75a0` (MI350X) and `0x75a3` (MI355X); they skip on other chips. The YAML cases target gfx950 and require a solution on those two IDs. Other gfx950 chips may execute the YAML cases if a solution exists, including through the existing device fallback; otherwise they may skip. `require_solution_chip_ids` is a fail-on-missing policy, not a device whitelist.
 
-**CI tiers.** The [hipBLASLt presubmit override](https://github.com/ROCm/rocm-libraries/blob/747326d1985356fb6751f21fbcd1174492712d53/.github/workflows/therock-multi-arch-ci.yml#L156) selects quick for gfx950. The tiers are cumulative:
+**Test groups and tiers.** The following mapping was checked at head `4b3e74e753c81c09fc57227fce812aa99576bc22`; these test assignments and workflow selectors are unchanged from the reviewed revision. Tiers are cumulative. Each row is a distinct kernel, and the table gives the first tier that includes each test:
 
-| Tier | Additional coverage from this PR |
-| --- | --- |
-| Quick | Two E2M3 K = 65536 numerical/uniformity cases, one per B order |
-| Standard | The other three kernel cases, selection/reuse tests, and three K = 65536 full-reference cases |
-| Comprehensive | The two K = 131584 full-reference cases |
+| Distinct kernel | Row-uniformity + sampled numerical test | Full CPU-reference GEMM test |
+| --- | --- | --- |
+| E2M3, K=65536, tiled B | Quick | Standard |
+| E2M3, K=65536, plain packed B | Quick | Standard |
+| E3M2, K=65536, tiled B | Standard | Standard |
+| E2M3, K=131584, tiled B | Standard | Comprehensive |
+| E3M2, K=131584, tiled B | Standard | Comprehensive, norm check only |
 
-Consequently, quick exercises two of the five distinct kernels. The dedicated HOST_ASAN nightly selects standard; it does not include the two nightly-category full-reference cases. The inspected [main nightly gfx950 matrix](https://github.com/ROCm/rocm-libraries/actions/runs/43172998162/job/131070857285) excluded hipBLASLt because no GPU runner was configured for that trigger. Scheduled runs also test develop rather than an unmerged PR. These are current lane limitations: full premerge coverage needs an explicitly selected suitable lane, and the nightly trigger configuration is a separate CI follow-up. This review does not require provisioning MI355X hardware when MI350X can execute the registered kernels.
+All five use M=N=4096 and tiled A. The row fixture performs the two checks described in actionable item 1; its sampled numerical check covers 64 positions. The full-reference tests compute the complete CPU GEMM, with a norm-only comparison for the final E3M2 case. The seven selection tests and two algorithm-reuse tests first appear in standard. Sources: [test definitions](https://github.com/ROCm/rocm-libraries/blob/4b3e74e753c81c09fc57227fce812aa99576bc22/projects/hipblaslt/clients/tests/src/row_uniformity_gtest.cpp#L1605), [YAML cases](https://github.com/ROCm/rocm-libraries/blob/4b3e74e753c81c09fc57227fce812aa99576bc22/projects/hipblaslt/clients/tests/data/matmul_gtest.yaml#L3149), and [CTest tiers](https://github.com/ROCm/rocm-libraries/blob/4b3e74e753c81c09fc57227fce812aa99576bc22/projects/hipblaslt/clients/tests/test_categories.yaml).
+
+**Workflow triggers and execution.** The GitHub workflows select those tiers as follows:
+
+| Workflow and trigger | Revision tested | Hardware | Selection |
+| --- | --- | --- | --- |
+| TheRock Multi-Arch PR CI, with hipBLASLt changes | PR merge commit | Linux gfx950 runner | Quick, explicitly forced for gfx950 |
+| hipBLASLt ASAN PR CI, on relevant path changes | PR merge commit | Linux gfx942 and gfx950 | Quick |
+| hipBLASLt ASAN nightly, daily 07:00 UTC | develop | Linux gfx942 and gfx950 | Standard |
+| TheRock Multi-Arch nightly, daily 07:00 UTC | develop | Builds gfx950 | Comprehensive globally; the inspected run excluded hipBLASLt GPU testing on gfx950 |
+| Manual hipBLASLt ASAN dispatch | Selected branch/ref | Linux gfx942 and gfx950 | User-selected tier |
+
+The [PR setup log](https://github.com/ROCm/rocm-libraries/actions/runs/43338566644/job/131601681103) confirms `gfx950: forcing test_type=quick (global=standard)`, matching the [presubmit override](https://github.com/ROCm/rocm-libraries/blob/4b3e74e753c81c09fc57227fce812aa99576bc22/.github/workflows/therock-multi-arch-ci.yml#L156). The [dedicated ASAN workflow](https://github.com/ROCm/rocm-libraries/blob/4b3e74e753c81c09fc57227fce812aa99576bc22/.github/workflows/hipblaslt-asan-ci.yml#L3) defines its PR/nightly choices. Its [direct runner](https://github.com/ROCm/rocm-libraries/blob/4b3e74e753c81c09fc57227fce812aa99576bc22/test/therock/test_hipblaslt.py#L88) differs from CTest: quick matches `*smoke*`; standard adds `*quick*` and `*pre_checkin*`, excluding `*known_bug*`; comprehensive/full apply no gtest filter and therefore run more than CTest's comprehensive tier.
+
+Scheduled nightlies test develop and do not validate this unmerged PR. The dedicated ASAN nightly's standard tier omits the two long-K full-reference cases. The inspected [main nightly gfx950 matrix](https://github.com/ROCm/rocm-libraries/actions/runs/43172998162/job/131070857285) excluded hipBLASLt because no GPU runner was configured for that trigger. Full premerge coverage therefore needs an explicitly selected suitable lane; the nightly trigger configuration is a separate CI follow-up.
+
+The separate CPU-only Component CI logic-corpus job runs on relevant PR changes. On head `4b3e74e753c`, [all nine new registration/predicate cases passed](https://github.com/ROCm/rocm-libraries/actions/runs/43338564702/job/131601292089), within 26 selected corpus tests with zero skips. At that head's inspected snapshot, gfx950 builds remained queued/in progress; no successful GPU-test completion was established. Math/Jenkins CI uses separate private filters whose exact test selection was not verified here.
 
 **Fixed-shape scope.** The author's explanation of a bounded set of workload-specific releases is consistent with this change. Runtime dimensions or JIT compilation would require a separate design; neither is requested here.
 
