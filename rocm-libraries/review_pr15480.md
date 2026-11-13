@@ -6,6 +6,8 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Diff base:** `d462573cb8e3539fc3730d9a8c43f9d3a462e9de`, the prerequisite in [#15672](https://github.com/ROCm/rocm-libraries/pull/15672).
 
+**Publication check:** The PR subsequently advanced to `4b3e74e753c81c09fc57227fce812aa99576bc22`, incorporating prerequisite `ad9cd52309cdf2f461dedeab7ed7f5a33317b252`. The intervening source diff changes only `fp6_tile128x4_args_gtest.cpp`; the kernels, numerical fixture, and findings below are unchanged. The recorded build/test results and suggestion branch remain based on the reviewed revision above; the newer API-test revision was not rebuilt for this publication.
+
 **Mode and scope:** Follow-up review incorporating existing reviews and author replies. Focus: numerical-test design, kernel selection and algorithm reuse, and actual CI selection. Earlier assembly and registration checks are retained where the sources are unchanged; this follow-up does not claim a fresh instruction-by-instruction assembly or synchronization audit.
 
 **Suggestion branch:** [review/pr15480-followup-suggestions](https://github.com/newling/rocm-libraries/tree/review/pr15480-followup-suggestions), based on the reviewed head. Commits [c955b465e1a](https://github.com/newling/rocm-libraries/commit/c955b465e1aab54969da19a3c982b40862a68774) and [33a4f3f365b](https://github.com/newling/rocm-libraries/commit/33a4f3f365bd6b114db28b91c527a4c2b4ed0546) implement suggestion 1. [Compare the reviewed head with the suggestions](https://github.com/newling/rocm-libraries/compare/747326d1985356fb6751f21fbcd1174492712d53...33a4f3f365bd6b114db28b91c527a4c2b4ed0546). The numerical-test redesign in actionable item 1 remains unimplemented.
