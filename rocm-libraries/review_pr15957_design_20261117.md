@@ -4,6 +4,8 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Reviewed head:** [ed456253fbc4eebacb12ed0254e3650cbde4521e](https://github.com/ROCm/rocm-libraries/commit/ed456253fbc4eebacb12ed0254e3650cbde4521e). **Comparison base:** [56eb1f717cd6222f46b7e4355ac0d17bce6fe308](https://github.com/ROCm/rocm-libraries/commit/56eb1f717cd6222f46b7e4355ac0d17bce6fe308).
 
+**Publication note:** The PR has advanced to [e508cb375e5f548174a380d48d9a8319b6845104](https://github.com/ROCm/rocm-libraries/commit/e508cb375e5f548174a380d48d9a8319b6845104) since this review. The findings and suggestion branch below apply to the reviewed head; the later revision has not been reviewed here.
+
 **Scope:** Follow-up review of matching-table construction, merge ownership, serialization, and the reason for each representation, considering the earlier published review, discussion on the accepted sampler prerequisite #15954, and the author's responses. This review covers the PR's own layer and its interactions with #15955–#15958. The sampler's accepted design is not reopened.
 
 ## Tests

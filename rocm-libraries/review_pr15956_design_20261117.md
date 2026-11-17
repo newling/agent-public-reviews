@@ -4,6 +4,8 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Reviewed head:** [56eb1f717cd6222f46b7e4355ac0d17bce6fe308](https://github.com/ROCm/rocm-libraries/commit/56eb1f717cd6222f46b7e4355ac0d17bce6fe308). **Comparison base:** [1e7247af13fc20cd2ec7c64b996925fa53348996](https://github.com/ROCm/rocm-libraries/commit/1e7247af13fc20cd2ec7c64b996925fa53348996).
 
+**Publication note:** The PR has advanced to [a501c9dfa15c0f7b38589b08a61ae9fbfc0bae46](https://github.com/ROCm/rocm-libraries/commit/a501c9dfa15c0f7b38589b08a61ae9fbfc0bae46) since this review. The findings and suggestion branch below apply to the reviewed head; the later revision has not been reviewed here.
+
 **Scope:** Follow-up review of compressed solution ownership, mapping/equality behavior, and unnecessary compatibility state, considering the earlier published review, discussion on the accepted sampler prerequisite #15954, and the author's responses. This review covers the PR's own layer and its interactions with #15955–#15958. The sampler's accepted design is not reopened.
 
 ## Tests

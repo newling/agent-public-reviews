@@ -4,6 +4,8 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Reviewed head:** [5a5326702711f4375e5a263fa85776015047c0e0](https://github.com/ROCm/rocm-libraries/commit/5a5326702711f4375e5a263fa85776015047c0e0). **Comparison base:** [ed456253fbc4eebacb12ed0254e3650cbde4521e](https://github.com/ROCm/rocm-libraries/commit/ed456253fbc4eebacb12ed0254e3650cbde4521e).
 
+**Publication note:** The PR has advanced to [ff9f125f881a126af140ee3178aad045b589a0c9](https://github.com/ROCm/rocm-libraries/commit/ff9f125f881a126af140ee3178aad045b589a0c9) since this review. The findings and suggestion branch below apply to the reviewed head; the later revision has not been reviewed here.
+
 **Scope:** Follow-up review of kernel submission order, result association, scheduling tradeoffs and the latest motivation, considering the earlier published review, discussion on the accepted sampler prerequisite #15954, and the author's responses. This review covers the PR's own layer and its interactions with #15955–#15958. The sampler's accepted design is not reopened.
 
 ## Tests

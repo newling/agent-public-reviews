@@ -4,6 +4,8 @@ This is a review from an agent with an automatic prompt from the reviewer
 
 **Reviewed head:** [1e7247af13fc20cd2ec7c64b996925fa53348996](https://github.com/ROCm/rocm-libraries/commit/1e7247af13fc20cd2ec7c64b996925fa53348996). **Comparison base:** [bf9dc2053c3e183ed854885aae57817bff8ebc0b](https://github.com/ROCm/rocm-libraries/commit/bf9dc2053c3e183ed854885aae57817bff8ebc0b).
 
+**Publication note:** The PR has advanced to [d085fdded2e1825dfd4ea7667bf7c94729ff8f3e](https://github.com/ROCm/rocm-libraries/commit/d085fdded2e1825dfd4ea7667bf7c94729ff8f3e) since this review. The findings and suggestion branch below apply to the reviewed head; the later revision has not been reviewed here.
+
 **Scope:** Follow-up review of worker lifetime, allocator reclamation and their measured motivation, considering the earlier published review, discussion on the accepted sampler prerequisite #15954, and the author's responses. This review covers the PR's own layer and its interactions with #15955–#15958. The sampler's accepted design is not reopened.
 
 ## Tests
