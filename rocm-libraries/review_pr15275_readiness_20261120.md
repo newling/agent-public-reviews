@@ -20,7 +20,7 @@ Root and component hooks completed successfully; their selectors do not run C++ 
 
 The November 20 CI snapshot contains unfinished Component/Multi-Arch/Math checks after the restack. The [policy-bot failure](https://github.com/ROCm/rocm-libraries/actions/runs/44826172848/job/136599235821) cites a cancelled pre-commit run; the snapshot also contains a successful replacement pre-commit. Cancelled duplicate runs are not evidence of a numerical regression, and the new required runs still need to complete.
 
-An exploratory host timing check compared the retained slow path with the new fast path on the same build, whose production code matches the submitted head. Workload: Float8 A/B/C/D, M=1023, N=1025, K=1021, no transposes or scales, alpha=1, beta=0; Ryzen Threadripper PRO 9995WX, eight OpenMP threads, dynamic threading disabled and `KMP_BLOCKTIME=0`. Each entry is one fresh driver launch, with no warm-up launches; validation was disabled for timing. The reported execution time includes the reference call and fast-eligibility check, excluding input setup and process startup.
+An exploratory host timing check compared the retained slow path with the new fast path on the same build, whose production code matches the submitted head. Workload: Float8 A/B/C/D, M=1023, N=1025, K=1021, no transposes or scales, alpha=1, beta=0; Ryzen Threadripper PRO 9995WX, eight OpenMP threads, dynamic threading disabled and `KMP_BLOCKTIME=0`. Each entry is one fresh driver launch, with no warm-up launches; validation ran after the timed call and passed. The reported execution time includes the reference call and fast-eligibility check, excluding input setup, validation and process startup.
 
 | Measurement | Pair 1 | Pair 2 | Pair 3 |
 | --- | ---: | ---: | ---: |
